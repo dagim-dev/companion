@@ -4,64 +4,17 @@ from datetime import datetime
 
 
 # =====================================================
-# UNRESOLVED-TOPIC HEURISTIC
-# =====================================================
-# Episodes whose summaries reference open-ended, outcome-pending situations
-# (interviews, exams, applications, etc.) are treated as "unresolved" so the
-# follow-up engine can prioritise checking in on them.
-
-UNRESOLVED_KEYWORDS = (
-    "interview",
-    "application",
-    "applied",
-    "applying",
-    "exam",
-    "test",
-    "quiz",
-    "project",
-    "deadline",
-    "presentation",
-    "meeting",
-    "decision",
-    "deciding",
-    "waiting",
-    "results",
-    "offer",
-    "job",
-    "promotion",
-    "surgery",
-    "appointment",
-    "deal",
-    "launch",
-    "negotiation",
-    "argument",
-    "fight",
-    "breakup",
-    "moving",
-    "relocation",
-)
-
-
-def infer_unresolved(summary) -> bool:
-    """Heuristically decide whether an episode summary describes an open,
-    outcome-pending situation worth following up on later."""
-    if not summary:
-        return False
-    text = str(summary).lower()
-    return any(keyword in text for keyword in UNRESOLVED_KEYWORDS)
-
-
-# =====================================================
 # CREATE EPISODE
 # =====================================================
 
 
-def create_episode(summary, emotion, importance):
+def create_episode(summary, emotion, importance, resolved):
     uid = require_user_id()
     conn = get_connection()
     cursor = conn.cursor()
 
-    resolved = 0 if infer_unresolved(summary) else 1
+    # The summarizer now decides open/closed state; persistence stores it verbatim.
+    resolved_value = 1 if resolved else 0
 
     cursor.execute(
         """
@@ -75,7 +28,7 @@ def create_episode(summary, emotion, importance):
             emotion,
             importance,
             str(datetime.now()),
-            resolved,
+            resolved_value,
         ),
     )
 

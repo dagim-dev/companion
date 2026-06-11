@@ -242,13 +242,19 @@ def _maybe_persist_runtime(state: JarvisState) -> None:
 def _maybe_create_episode(state: JarvisState, turn: PreparedTurn) -> None:
     if len(state.conversation) % 12 != 0:
         return
-    summary = summarize_recent(state.conversation)
-    if not summary:
+    episode_summary = summarize_recent(state.conversation)
+    if not episode_summary:
         return
     importance = 0.5
     if turn.intensity > 0.7:
         importance += 0.3
-    create_episode(summary=summary, emotion=turn.emotion, importance=importance)
+    # The summarizer returns unresolved=True for open outcomes; DB resolved is inverse.
+    create_episode(
+        summary=episode_summary.summary,
+        emotion=turn.emotion,
+        importance=importance,
+        resolved=not episode_summary.unresolved,
+    )
 
 
 def _llm_kwargs(state: JarvisState, turn: PreparedTurn) -> dict[str, Any]:
