@@ -3,48 +3,6 @@ import re
 
 
 # =========================================================
-# CLEAN TRIMMING
-# =========================================================
-
-def trim_to_sentence(text, limit):
-    """
-    Trims response cleanly without cutting mid-sentence.
-    """
-
-    if len(text) <= limit:
-        return text
-
-    trimmed = text[:limit]
-
-    # Find last sentence ending
-    matches = list(re.finditer(r"[.!?]", trimmed))
-
-    if matches:
-        return trimmed[:matches[-1].end()].strip()
-
-    return trimmed.strip()
-
-
-# =========================================================
-# LENGTH ENFORCEMENT
-# =========================================================
-
-def enforce_length(response, behavior):
-
-    verbosity = behavior.get("verbosity", "medium")
-
-    limits = {
-        "short": 220,
-        "medium": 500,
-        "long": 900
-    }
-
-    limit = limits.get(verbosity, 500)
-
-    return trim_to_sentence(response, limit)
-
-
-# =========================================================
 # TONE VIOLATION DETECTION
 # =========================================================
 
@@ -179,8 +137,5 @@ def control_response(response, behavior, intent):
     if detect_tone_violation(response, intent):
 
         response = soften_response(response)
-
-    # 3. Final clean length enforcement
-    response = enforce_length(response, behavior)
 
     return response

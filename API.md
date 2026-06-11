@@ -103,7 +103,7 @@ data: {"type":"done","content":"Hello, Sir. ...","intent":"casual","emotion":"ne
 | Event type | Meaning |
 |------------|---------|
 | `token` | Raw LLM token chunk (stream as received) |
-| `done` | Final reply after `control_response`, rhythm, initiative |
+| `done` | Final reply after `control_response` and rhythm |
 
 The UI should show tokens live, then replace with `done.content` when the done event arrives.
 

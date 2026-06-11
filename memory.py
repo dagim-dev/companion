@@ -117,7 +117,25 @@ def init_db():
         summary TEXT,
         emotion TEXT,
         importance REAL,
-        created_at TEXT
+        created_at TEXT,
+        resolved INTEGER DEFAULT 0
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS followup_state (
+        user_id TEXT PRIMARY KEY,
+        last_followup_at TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS conversations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        timestamp TEXT NOT NULL
     )
     """)
 
@@ -127,6 +145,7 @@ def init_db():
         "personal_memories",
         "reflections",
         "episodes",
+        "conversations",
     ):
         cursor.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{table}_user ON {table}(user_id)"
@@ -162,6 +181,79 @@ def _ensure_schema_upgrades(cursor) -> None:
             updated_at TEXT NOT NULL
         )
         """)
+
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='conversations'"
+    )
+    if not cursor.fetchone():
+        cursor.execute("""
+        CREATE TABLE conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+        """)
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_conversations_user ON conversations(user_id)"
+        )
+
+    cursor.execute("PRAGMA table_info(episodes)")
+    episode_cols = {row[1] for row in cursor.fetchall()}
+    if "resolved" not in episode_cols:
+        cursor.execute(
+            "ALTER TABLE episodes ADD COLUMN resolved INTEGER DEFAULT 0"
+        )
+
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='followup_state'"
+    )
+    if not cursor.fetchone():
+        cursor.execute("""
+        CREATE TABLE followup_state (
+            user_id TEXT PRIMARY KEY,
+            last_followup_at TEXT
+        )
+        """)
+
+
+# =====================================================
+# CONVERSATIONS
+# =====================================================
+
+
+def save_conversation_message(user_id: str, role: str, content: str) -> None:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO conversations (user_id, role, content, timestamp)
+        VALUES (?, ?, ?, ?)
+        """,
+        (user_id, role, content, str(datetime.now())),
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_recent_conversations(
+    user_id: str, limit: int = 20
+) -> list[dict[str, str]]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT role, content FROM conversations
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (user_id, limit),
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"role": row[0], "content": row[1]} for row in reversed(rows)]
 
 
 # =====================================================

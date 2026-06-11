@@ -1,7 +1,7 @@
 # -------------------------
 # MAIN ENTRY POINT
 # -------------------------
-def extract_user_insights(conversation, emotional_profile):
+def extract_user_insights(conversation, emotional_state):
     insights = {
         "traits": set(),
         "interests": set(),
@@ -16,7 +16,7 @@ def extract_user_insights(conversation, emotional_profile):
 
         detect_traits(text, insights)
         detect_interests(text, insights)
-        detect_issues(text, insights, emotional_profile)
+        detect_issues(text, insights, emotional_state)
 
     return {
         "traits": list(insights["traits"]),
@@ -114,12 +114,15 @@ def detect_interests(text, insights):
 # -------------------------
 # ISSUE DETECTION
 # -------------------------
-def detect_issues(text, insights, emotional_profile):
-    emotion = emotional_profile.get("current_emotion")
+def detect_issues(text, insights, emotional_state):
+    emotion = emotional_state.get("current")
 
     # emotion-based detection
     if emotion == "stress":
         insights["issues"].add("stress")
+
+    if emotion == "anxiety":
+        insights["issues"].add("anxiety")
 
     if emotion == "sad":
         insights["issues"].add("low mood")

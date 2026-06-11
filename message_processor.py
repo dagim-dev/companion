@@ -4,11 +4,11 @@ from typing import Any, Iterator, Optional
 
 from classifier import classify_intent, detect_emotion
 from context_builder import build_context
-from conversation_manager import generate_followup
+from memory_followups import generate_followup
 from conversation_summarizer import summarize_recent
 from decision_engine import decide_behavior
 from episodic_memory import create_episode
-from initiative_engine import maybe_add_initiative
+from curiosity_engine import maybe_add_initiative
 from llm import chat, chat_stream
 from memory import (
     add_emotional_history,

@@ -16,7 +16,7 @@ def summarize_recent(conversation):
             "role": "system",
             "content": (
                 "Summarize the recent conversation period "
-                "in 1-2 concise sentences. "
+                "in 2-3 concise sentences. "
                 "Focus on emotional themes, "
                 "important concerns, changes in mindset, "
                 "and meaningful developments."

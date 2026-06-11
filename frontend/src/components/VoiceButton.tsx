@@ -18,9 +18,6 @@ export function VoiceButton({
   onSpeak,
   lastAssistantText,
 }: VoiceButtonProps) {
-  if (!voiceAvailable) {
-    return null;
-  }
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
   const mediaRef = useRef<MediaRecorder | null>(null);
@@ -88,6 +85,10 @@ export function VoiceButton({
       setBusy(false);
     }
   }, [busy, lastAssistantText, onSpeak]);
+
+  if (!voiceAvailable) {
+    return null;
+  }
 
   return (
     <div className="flex items-center gap-2">
