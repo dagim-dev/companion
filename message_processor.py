@@ -2,11 +2,12 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Iterator, Optional
 
-from classifier import classify_intent, detect_emotion
+from classifier import classify_intent, detect_emotion, intent_confidence
 from context_builder import build_context
+from cognition_engine import CognitionResult, generate_cognition
 from memory_followups import generate_followup
 from conversation_summarizer import summarize_recent
-from decision_engine import decide_behavior
+from decision_engine import apply_cognition_to_behavior, decide_behavior
 from episodic_memory import create_episode
 from curiosity_engine import maybe_add_initiative
 from llm import chat, chat_stream
@@ -33,7 +34,6 @@ from memory_recall import (
 from preference_consolidation import maybe_consolidate_preferences
 from memory_retriever import retrieve_relevant_reflections
 from personal_memory import extract_personal_memories, save_personal_memory
-from reasoning_engine import generate_internal_reasoning
 from reflection_engine import (
     detect_reflection_topic,
     generate_checkin,
@@ -59,7 +59,7 @@ class PreparedTurn:
     patterns: dict
     context: dict
     insights: dict
-    internal_reasoning: str
+    cognition: CognitionResult
     initiative_question: Optional[str]
     followup: Optional[str]
     companion_prefs: Any = None
@@ -83,6 +83,8 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
     sentiment = state.analyzer.polarity_scores(user_input)
     emotion, intensity = detect_emotion(user_input, sentiment)
     intent = classify_intent(user_input)
+    intent_score = intent_confidence(user_input, intent)
+    emotion_confidence = intensity
 
     state.internal_state.update(emotion, intent)
     state.personality_state.update(emotion, intent, len(state.conversation))
@@ -111,8 +113,6 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
 
     patterns = detect_emotional_patterns()
 
-    state.thought_engine.generate(intent, emotion, patterns)
-
     if intent in ("reflection", "anxiety_stress", "help_request"):
         relevant_reflections = retrieve_relevant_reflections(user_input)
     else:
@@ -124,6 +124,21 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
     context["personal_memories"] = personal_memories
     context["relevant_reflections"] = relevant_reflections
 
+    cognition = generate_cognition(
+        user_input=user_input,
+        conversation=state.conversation,
+        emotion=emotion,
+        intensity=intensity,
+        intent=intent,
+        intent_confidence=intent_score,
+        emotion_confidence=emotion_confidence,
+        sentiment=sentiment,
+        patterns=patterns,
+        style_memories=learned_preference_memories,
+    )
+    if cognition.memory_to_surface:
+        context["cognition_memory_hint"] = cognition.memory_to_surface
+
     insights = extract_user_insights(
         state.conversation, emotional_profile["state"]
     )
@@ -131,9 +146,6 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
         len(state.conversation),
         insights=insights,
         companion_prefs=state.companion_prefs,
-    )
-    internal_reasoning = generate_internal_reasoning(
-        state.conversation, emotion, intent
     )
 
     checkin = generate_checkin()
@@ -146,19 +158,23 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
         state.internal_state.snapshot(),
         companion_prefs=state.companion_prefs,
     )
+    behavior = apply_cognition_to_behavior(behavior, cognition)
 
-    initiative_question = state.curiosity_engine.generate_question(
-        intent,
-        emotion,
-        intensity,
-        state.personality_state.relationship_depth,
-    )
+    initiative_question = None
+    followup = None
+    if cognition.ask_question:
+        initiative_question = state.curiosity_engine.generate_question(
+            intent,
+            emotion,
+            intensity,
+            state.personality_state.relationship_depth,
+        )
 
-    followup = generate_followup(
-        emotional_profile,
-        patterns,
-        state.personality_state.relationship_depth,
-    )
+        followup = generate_followup(
+            emotional_profile,
+            patterns,
+            state.personality_state.relationship_depth,
+        )
 
     return PreparedTurn(
         user_input=user_input,
@@ -172,7 +188,7 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
         patterns=patterns,
         context=context,
         insights=insights,
-        internal_reasoning=internal_reasoning,
+        cognition=cognition,
         initiative_question=initiative_question,
         followup=followup,
         companion_prefs=state.companion_prefs,
@@ -268,12 +284,11 @@ def _llm_kwargs(state: JarvisState, turn: PreparedTurn) -> dict[str, Any]:
         "patterns": turn.patterns,
         "context": turn.context,
         "insights": turn.insights,
-        "internal_reasoning": turn.internal_reasoning,
+        "cognition": turn.cognition,
         "internal_state": state.internal_state.snapshot(),
         "meta_cognition": state.meta_cognition.snapshot(),
         "personality_state": state.personality_state.snapshot(),
         "self_perception": state.self_perception.snapshot(),
-        "thought_state": state.thought_engine.snapshot(),
         "companion_prefs": turn.companion_prefs,
         "learned_preference_memories": turn.learned_preference_memories or [],
     }

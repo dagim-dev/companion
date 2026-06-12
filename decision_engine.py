@@ -1,3 +1,44 @@
+def _clamp(value, minimum=0.0, maximum=1.0):
+    return max(minimum, min(maximum, value))
+
+
+def apply_cognition_to_behavior(behavior: dict, cognition) -> dict:
+    behavior = dict(behavior)
+
+    tone_override = getattr(cognition, "tone_override", "none")
+    approach = getattr(cognition, "approach", "stay_brief")
+
+    if tone_override == "warmer":
+        behavior["warmth"] = behavior.get("warmth", 0.0) + 0.15
+        behavior["sarcasm"] = behavior.get("sarcasm", 0.0) * 0.5
+    elif tone_override == "grounded":
+        behavior["tone"] = "grounded"
+        if behavior.get("coping") is None:
+            behavior["coping"] = "grounding"
+    elif tone_override == "clear":
+        behavior["tone"] = "clear"
+        behavior["style"] = "solution_oriented"
+    elif tone_override == "thoughtful":
+        behavior["tone"] = "thoughtful"
+        behavior["verbosity"] = "long"
+
+    if approach == "validate_first":
+        behavior["warmth"] = max(behavior.get("warmth", 0.0), 0.75)
+        behavior["verbosity"] = "short"
+    elif approach == "grounding":
+        behavior["coping"] = "grounding"
+        behavior["sarcasm"] = 0
+    elif approach == "stay_brief":
+        behavior["verbosity"] = "short"
+    elif approach == "solution_focus":
+        behavior["style"] = "solution_oriented"
+        behavior["tone"] = "clear"
+
+    behavior["warmth"] = _clamp(behavior.get("warmth", 0.0))
+    behavior["sarcasm"] = _clamp(behavior.get("sarcasm", 0.0))
+    return behavior
+
+
 def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=None):
     state = emotional_profile["state"]["current"]
     intensity = emotional_profile["state"]["intensity"]

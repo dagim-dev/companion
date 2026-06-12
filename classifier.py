@@ -3,6 +3,20 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 analyzer = SentimentIntensityAnalyzer()
 
 def classify_intent(message):
+    intent_scores = _score_intents(message)
+
+    # --- PICK BEST INTENT ---
+    best_intent = max(intent_scores, key=intent_scores.get)
+    confidence = intent_scores[best_intent]
+
+    # --- UNCERTAINTY CHECK ---
+    if confidence < 0.5:
+        return "casual_talk"
+
+    return best_intent
+
+
+def _score_intents(message):
     msg = message.lower()
     sentiment = analyzer.polarity_scores(msg)
 
@@ -52,15 +66,15 @@ def classify_intent(message):
     # --- DEFAULT casual boost ---
     intent_scores["casual_talk"] += 0.2  # small baseline
 
-    # --- PICK BEST INTENT ---
-    best_intent = max(intent_scores, key=intent_scores.get)
-    confidence = intent_scores[best_intent]
+    return intent_scores
 
-    # --- UNCERTAINTY CHECK ---
-    if confidence < 0.5:
-        return "casual_talk"
 
-    return best_intent
+def intent_confidence(message, intent=None):
+    intent_scores = _score_intents(message)
+    selected_intent = intent or max(intent_scores, key=intent_scores.get)
+    if selected_intent == "casual_talk" and max(intent_scores.values()) < 0.5:
+        return intent_scores["casual_talk"]
+    return intent_scores.get(selected_intent, 0.0)
 
 def detect_emotion(message, sentiment):
 

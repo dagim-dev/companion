@@ -4,6 +4,7 @@ from typing import Iterator
 
 from openai import OpenAI
 from config import OPENAI_API_KEY
+from cognition_engine import CognitionResult
 from companion_prefs import CompanionPreferences
 from prompt_builder import build_personality_layer
 
@@ -22,12 +23,11 @@ def build_system_message(
     patterns,
     context,
     insights,
-    internal_reasoning,
+    cognition: CognitionResult,
     internal_state,
     meta_cognition,
     personality_state,
     self_perception,
-    thought_state,
     companion_prefs: CompanionPreferences | None = None,
     learned_preference_memories: list | None = None,
 ):
@@ -123,16 +123,16 @@ META-COGNITIVE STATE:
 SELF PERCEPTION:
 {self_perception}
 
-THOUGHT STREAM:
-{thought_state}
-
 Interpret meta-cognitive and self-perception signals internally.
 Do not quote internal thoughts directly.
 
-PRIVATE REASONING:
-{internal_reasoning}
-
-Use private reasoning silently. Do not expose internal analysis directly.
+COGNITION (private — use silently, never quote):
+- Approach: {cognition.approach}
+- Priorities: {cognition.priorities}
+- Risks: {cognition.risks}
+- Response goal: {cognition.response_goal}
+- Emotional signal: {cognition.emotional_signal or "none"}
+- Memory to surface: {cognition.memory_to_surface or "none"}
 """
 
 
@@ -146,12 +146,11 @@ def build_chat_messages(
     patterns,
     context,
     insights,
-    internal_reasoning,
+    cognition,
     internal_state,
     meta_cognition,
     personality_state,
     self_perception,
-    thought_state,
     companion_prefs=None,
     learned_preference_memories=None,
 ):
@@ -164,12 +163,11 @@ def build_chat_messages(
         patterns,
         context,
         insights,
-        internal_reasoning,
+        cognition,
         internal_state,
         meta_cognition,
         personality_state,
         self_perception,
-        thought_state,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
     )
@@ -218,12 +216,11 @@ def chat_stream(
     patterns,
     context,
     insights,
-    internal_reasoning,
+    cognition,
     internal_state,
     meta_cognition,
     personality_state,
     self_perception,
-    thought_state,
     *,
     companion_prefs=None,
     learned_preference_memories=None,
@@ -239,12 +236,11 @@ def chat_stream(
         patterns,
         context,
         insights,
-        internal_reasoning,
+        cognition,
         internal_state,
         meta_cognition,
         personality_state,
         self_perception,
-        thought_state,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
     )
@@ -282,12 +278,11 @@ def chat(
     patterns,
     context,
     insights,
-    internal_reasoning,
+    cognition,
     internal_state,
     meta_cognition,
     personality_state,
     self_perception,
-    thought_state,
     *,
     companion_prefs=None,
     learned_preference_memories=None,
@@ -304,12 +299,11 @@ def chat(
         patterns,
         context,
         insights,
-        internal_reasoning,
+        cognition,
         internal_state,
         meta_cognition,
         personality_state,
         self_perception,
-        thought_state,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
         echo_to_terminal=echo_to_terminal,
