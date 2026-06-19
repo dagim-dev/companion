@@ -1,6 +1,4 @@
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-  "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "";
 
 const TOKEN_KEY = "companion_access_token";
 
@@ -41,7 +39,13 @@ export type Preferences = {
   role_id: string;
   communication: "direct" | "balanced" | "gentle";
   energy: "calm" | "upbeat";
+  challenge_level: "low" | "medium" | "high";
+  emotional_support: "low" | "medium" | "high";
+  detail_level: "concise" | "normal" | "detailed";
+  examples_preference: "few" | "when_useful" | "often";
+  accountability_style: "light" | "steady" | "firm";
   sliders: Record<string, number>;
+  baseline_directives: Record<string, string>;
   custom_notes: string;
   onboarding_completed: boolean;
   template_version: string;
@@ -60,12 +64,51 @@ export type HealthResponse = {
   voice?: VoiceHealth;
 };
 
+export type MemoryExtractionJob = {
+  id: number;
+  message_id: number;
+  status: string;
+  retry_count: number;
+  error: string | null;
+  created_at: string;
+  next_retry_at: string | null;
+  completed_at: string | null;
+};
+
+export type MemoryExtractionHealth = {
+  pending: number;
+  processing: number;
+  completed: number;
+  pending_retry: number;
+  failed_permanently: number;
+  success_rate: number;
+  last_failure_reason: string | null;
+  last_failed_job: MemoryExtractionJob | null;
+  total_jobs_processed: number;
+  show_warning: boolean;
+  warning_message: string | null;
+};
+
 export async function fetchHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_URL}/health`, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Health check failed (${response.status})`);
   }
   return response.json() as Promise<HealthResponse>;
+}
+
+export async function fetchMemoryExtractionHealth(): Promise<MemoryExtractionHealth> {
+  const response = await fetch(`${API_URL}/v1/dev/memory-extraction/health`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(
+      formatApiError(err, `Memory extraction health failed (${response.status})`),
+    );
+  }
+  return response.json() as Promise<MemoryExtractionHealth>;
 }
 
 export type UserProfile = {
@@ -195,9 +238,14 @@ export async function updateAddressAs(address_as: string): Promise<UserProfile> 
 }
 
 export async function completeOnboarding(body: {
-  role_id: string;
+  role_id?: string;
   communication: "direct" | "balanced" | "gentle";
   energy: "calm" | "upbeat";
+  challenge_level?: "low" | "medium" | "high";
+  emotional_support?: "low" | "medium" | "high";
+  detail_level?: "concise" | "normal" | "detailed";
+  examples_preference?: "few" | "when_useful" | "often";
+  accountability_style?: "light" | "steady" | "firm";
   address_as: string;
   display_name?: string;
   custom_notes?: string;
@@ -232,6 +280,12 @@ export async function updatePreferences(body: {
   role_id?: string;
   communication?: "direct" | "balanced" | "gentle";
   energy?: "calm" | "upbeat";
+  challenge_level?: "low" | "medium" | "high";
+  emotional_support?: "low" | "medium" | "high";
+  detail_level?: "concise" | "normal" | "detailed";
+  examples_preference?: "few" | "when_useful" | "often";
+  accountability_style?: "light" | "steady" | "firm";
+  sliders?: Record<string, number>;
   custom_notes?: string;
 }): Promise<Preferences> {
   const response = await fetch(`${API_URL}/v1/preferences`, {

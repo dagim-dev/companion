@@ -21,7 +21,7 @@ def record(test_id, name, status, expected, actual, notes=""):
         sys.exit(1)
 
 
-def register_onboard(client, email: str, role: str, address: str) -> str:
+def register_onboard(client, email: str, address: str, communication: str = "balanced") -> str:
     r = client.post(
         f"{BASE}/v1/auth/register",
         json={"email": email, "password": "password123"},
@@ -39,8 +39,7 @@ def register_onboard(client, email: str, role: str, address: str) -> str:
         f"{BASE}/v1/onboarding/complete",
         headers=h,
         json={
-            "role_id": role,
-            "communication": "balanced",
+            "communication": communication,
             "energy": "calm",
             "address_as": address,
         },
@@ -66,8 +65,8 @@ def main():
         token = register_onboard(
             client,
             f"qa-c-alice-{uuid.uuid4().hex[:6]}@example.com",
-            "calm_companion",
             "Sir",
+            "gentle",
         )
         h = {"Authorization": f"Bearer {token}"}
 
@@ -136,8 +135,8 @@ def main():
         # 6.1-6.4 two users
         alice_email = f"qa-alice-{uuid.uuid4().hex[:6]}@example.com"
         bob_email = f"qa-bob-{uuid.uuid4().hex[:6]}@example.com"
-        alice_t = register_onboard(client, alice_email, "calm_companion", "Sir")
-        bob_t = register_onboard(client, bob_email, "fitness_coach", "Boss")
+        alice_t = register_onboard(client, alice_email, "Sir", "gentle")
+        bob_t = register_onboard(client, bob_email, "Boss", "direct")
         ha = {"Authorization": f"Bearer {alice_t}"}
         hb = {"Authorization": f"Bearer {bob_t}"}
 
@@ -178,8 +177,8 @@ def main():
 
         pra = client.get(f"{BASE}/v1/preferences", headers=ha).json()
         prb = client.get(f"{BASE}/v1/preferences", headers=hb).json()
-        ok64 = pra.get("role_id") == "calm_companion" and prb.get("role_id") == "fitness_coach"
-        record("6.4", "Prefs isolation", "pass" if ok64 else "fail", "different roles", f"{pra.get('role_id')} vs {prb.get('role_id')}")
+        ok64 = pra.get("communication") == "gentle" and prb.get("communication") == "direct"
+        record("6.4", "Prefs isolation", "pass" if ok64 else "fail", "different communication baselines", f"{pra.get('communication')} vs {prb.get('communication')}")
 
         # 6.5 SQL
         q = subprocess.run(

@@ -1,11 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import {
-  completeOnboarding,
-  fetchOnboardingRoles,
-  type OnboardingRole,
-} from "@/lib/api";
+import { completeOnboarding } from "@/lib/api";
 import { NicknamePicker } from "./NicknamePicker";
 
 type OnboardingWizardProps = {
@@ -14,21 +10,22 @@ type OnboardingWizardProps = {
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [step, setStep] = useState(1);
-  const [roles, setRoles] = useState<OnboardingRole[]>([]);
-  const [roleId, setRoleId] = useState("general_jarvis");
   const [communication, setCommunication] = useState<
     "direct" | "balanced" | "gentle"
   >("balanced");
   const [energy, setEnergy] = useState<"calm" | "upbeat">("calm");
+  const [challengeLevel, setChallengeLevel] = useState<"low" | "medium" | "high">("medium");
+  const [emotionalSupport, setEmotionalSupport] = useState<"low" | "medium" | "high">("medium");
+  const [detailLevel, setDetailLevel] = useState<"concise" | "normal" | "detailed">("normal");
+  const [examplesPreference, setExamplesPreference] = useState<"few" | "when_useful" | "often">("when_useful");
+  const [accountabilityStyle, setAccountabilityStyle] = useState<"light" | "steady" | "firm">("steady");
   const [addressAs, setAddressAs] = useState<string | null>(null);
   const [customNotes, setCustomNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchOnboardingRoles()
-      .then(setRoles)
-      .catch((e) => setError((e as Error).message));
+    setError(null);
   }, []);
 
   const handleFinish = async (e: FormEvent) => {
@@ -38,9 +35,13 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     setLoading(true);
     try {
       await completeOnboarding({
-        role_id: roleId,
         communication,
         energy,
+        challenge_level: challengeLevel,
+        emotional_support: emotionalSupport,
+        detail_level: detailLevel,
+        examples_preference: examplesPreference,
+        accountability_style: accountabilityStyle,
         address_as: addressAs,
         custom_notes: customNotes.trim() || undefined,
       });
@@ -59,43 +60,10 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           Configure J.A.R.V.I.S.
         </h1>
         <p className="mt-1 text-sm text-jarvis-muted">
-          Step {step} of 3 — personalize how your companion behaves
+          Step {step} of 4 — personalize how Jarvis communicates
         </p>
 
         {step === 1 && (
-          <div className="mt-6 space-y-3">
-            <p className="text-sm text-jarvis-muted">Choose your companion style</p>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {(roles.length > 0
-                ? roles
-                : [{ id: "general_jarvis", title: "General JARVIS", description: "" }]
-              ).map((r) => (
-                <button
-                  key={r.id}
-                  type="button"
-                  onClick={() => setRoleId(r.id)}
-                  className={`rounded-lg border p-3 text-left text-sm transition ${
-                    roleId === r.id
-                      ? "border-jarvis-accent bg-jarvis-accent/10 text-slate-100"
-                      : "border-jarvis-border text-jarvis-muted hover:border-slate-500"
-                  }`}
-                >
-                  <span className="font-medium text-slate-200">{r.title}</span>
-                  <span className="mt-1 block text-xs">{r.description}</span>
-                </button>
-              ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="mt-4 w-full rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
-            >
-              Continue
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
           <div className="mt-6 space-y-4">
             <div>
               <p className="text-sm text-jarvis-muted">Communication</p>
@@ -138,6 +106,58 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             <div className="flex gap-2">
               <button
                 type="button"
+                onClick={() => setStep(2)}
+                className="w-full rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="mt-6 space-y-4">
+            <div>
+              <p className="text-sm text-jarvis-muted">Challenge level</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setChallengeLevel(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      challengeLevel === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Emotional support</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setEmotionalSupport(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      emotionalSupport === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
                 onClick={() => setStep(1)}
                 className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
               >
@@ -155,6 +175,88 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         )}
 
         {step === 3 && (
+          <div className="mt-6 space-y-4">
+            <div>
+              <p className="text-sm text-jarvis-muted">Detail level</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["concise", "normal", "detailed"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setDetailLevel(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      detailLevel === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Examples</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {([
+                  ["few", "Few"],
+                  ["when_useful", "When useful"],
+                  ["often", "Often"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setExamplesPreference(value)}
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      examplesPreference === value
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Accountability</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["light", "steady", "firm"] as const).map((style) => (
+                  <button
+                    key={style}
+                    type="button"
+                    onClick={() => setAccountabilityStyle(style)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      accountabilityStyle === style
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {style}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setStep(2)}
+                className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="flex-1 rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
           <div className="mt-6 space-y-4">
             <NicknamePicker
               onSubmit={async (value) => {
@@ -182,7 +284,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
               >
                 Back

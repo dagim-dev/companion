@@ -19,7 +19,13 @@ def record(results, test_id, name, status, expected, actual, notes=""):
         sys.exit(1)
 
 
-def register_onboard(client, role: str) -> tuple[str, str]:
+def register_onboard(
+    client,
+    *,
+    communication: str = "balanced",
+    challenge_level: str = "medium",
+    emotional_support: str = "medium",
+) -> tuple[str, str]:
     email = f"qa-d-{uuid.uuid4().hex[:8]}@example.com"
     r = client.post(
         f"{BASE}/v1/auth/register",
@@ -33,9 +39,10 @@ def register_onboard(client, role: str) -> tuple[str, str]:
         f"{BASE}/v1/onboarding/complete",
         headers=h,
         json={
-            "role_id": role,
-            "communication": "direct",
+            "communication": communication,
             "energy": "calm",
+            "challenge_level": challenge_level,
+            "emotional_support": emotional_support,
             "address_as": "Boss",
         },
         timeout=10,
@@ -61,7 +68,12 @@ def main():
     )
 
     with httpx.Client() as client:
-        token, uid = register_onboard(client, "productivity_operator")
+        token, uid = register_onboard(
+            client,
+            communication="direct",
+            challenge_level="high",
+            emotional_support="low",
+        )
         h = {"Authorization": f"Bearer {token}"}
 
         r71 = client.post(
@@ -75,13 +87,18 @@ def main():
         record(
             R,
             "7.1",
-            "Role in prompt",
+            "Jarvis baseline style",
             "pass" if operational else "warn",
             "operational tone",
             text71[:150],
         )
 
-        token2, _ = register_onboard(client, "calm_companion")
+        token2, _ = register_onboard(
+            client,
+            communication="gentle",
+            challenge_level="low",
+            emotional_support="high",
+        )
         h2 = {"Authorization": f"Bearer {token2}"}
         client.put(
             f"{BASE}/v1/preferences",
@@ -103,7 +120,7 @@ def main():
         record(
             R,
             "7.2",
-            "calm_companion support",
+            "Runtime support adaptation",
             "pass" if supportive else "warn",
             "supportive language",
             text72[:150],

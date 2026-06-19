@@ -2,12 +2,10 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import {
-  fetchOnboardingRoles,
   fetchPreferences,
   resetLearnedStyle,
   updateAddressAs,
   updatePreferences,
-  type OnboardingRole,
   type Preferences,
 } from "@/lib/api";
 import { NicknamePicker } from "./NicknamePicker";
@@ -25,13 +23,16 @@ export function SettingsPanel({
   addressAs,
   onAddressAsChange,
 }: SettingsPanelProps) {
-  const [roles, setRoles] = useState<OnboardingRole[]>([]);
   const [prefs, setPrefs] = useState<Preferences | null>(null);
-  const [roleId, setRoleId] = useState("general_jarvis");
   const [communication, setCommunication] = useState<
     "direct" | "balanced" | "gentle"
   >("balanced");
   const [energy, setEnergy] = useState<"calm" | "upbeat">("calm");
+  const [challengeLevel, setChallengeLevel] = useState<"low" | "medium" | "high">("medium");
+  const [emotionalSupport, setEmotionalSupport] = useState<"low" | "medium" | "high">("medium");
+  const [detailLevel, setDetailLevel] = useState<"concise" | "normal" | "detailed">("normal");
+  const [examplesPreference, setExamplesPreference] = useState<"few" | "when_useful" | "often">("when_useful");
+  const [accountabilityStyle, setAccountabilityStyle] = useState<"light" | "steady" | "firm">("steady");
   const [customNotes, setCustomNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,13 +41,16 @@ export function SettingsPanel({
 
   useEffect(() => {
     if (!open) return;
-    Promise.all([fetchOnboardingRoles(), fetchPreferences()])
-      .then(([r, p]) => {
-        setRoles(r);
+    fetchPreferences()
+      .then((p) => {
         setPrefs(p);
-        setRoleId(p.role_id);
         setCommunication(p.communication);
         setEnergy(p.energy);
+        setChallengeLevel(p.challenge_level);
+        setEmotionalSupport(p.emotional_support);
+        setDetailLevel(p.detail_level);
+        setExamplesPreference(p.examples_preference);
+        setAccountabilityStyle(p.accountability_style);
         setCustomNotes(p.custom_notes || "");
       })
       .catch((e) => setError((e as Error).message));
@@ -71,9 +75,13 @@ export function SettingsPanel({
     setError(null);
     try {
       const updated = await updatePreferences({
-        role_id: roleId,
         communication,
         energy,
+        challenge_level: challengeLevel,
+        emotional_support: emotionalSupport,
+        detail_level: detailLevel,
+        examples_preference: examplesPreference,
+        accountability_style: accountabilityStyle,
         custom_notes: customNotes.trim() || undefined,
       });
       setPrefs(updated);
@@ -130,55 +138,141 @@ export function SettingsPanel({
         {prefs ? (
           <form onSubmit={handleSave} className="mt-4 space-y-4">
             <div>
-              <p className="text-sm text-jarvis-muted">Style</p>
-              <div className="mt-2 grid gap-2">
-                {roles.map((r) => (
+              <p className="text-sm text-jarvis-muted">Communication</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["direct", "balanced", "gentle"] as const).map((c) => (
                   <button
-                    key={r.id}
+                    key={c}
                     type="button"
-                    onClick={() => setRoleId(r.id)}
-                    className={`rounded-lg border p-2 text-left text-xs ${
-                      roleId === r.id
-                        ? "border-jarvis-accent bg-jarvis-accent/10"
-                        : "border-jarvis-border"
+                    onClick={() => setCommunication(c)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      communication === c
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
                     }`}
                   >
-                    {r.title}
+                    {c}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {(["direct", "balanced", "gentle"] as const).map((c) => (
+            <div>
+              <p className="text-sm text-jarvis-muted">Energy</p>
+              <div className="mt-2 flex gap-2">
+                {(["calm", "upbeat"] as const).map((e) => (
+                  <button
+                    key={e}
+                    type="button"
+                    onClick={() => setEnergy(e)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      energy === e
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {e}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Challenge</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setChallengeLevel(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      challengeLevel === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Emotional support</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["low", "medium", "high"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setEmotionalSupport(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      emotionalSupport === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Detail</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["concise", "normal", "detailed"] as const).map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => setDetailLevel(level)}
+                    className={`rounded-full px-3 py-1 text-xs capitalize ${
+                      detailLevel === level
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Examples</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {([
+                  ["few", "Few"],
+                  ["when_useful", "When useful"],
+                  ["often", "Often"],
+                ] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setExamplesPreference(value)}
+                    className={`rounded-full px-3 py-1 text-xs ${
+                      examplesPreference === value
+                        ? "bg-jarvis-accent text-slate-900"
+                        : "border border-jarvis-border text-jarvis-muted"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-sm text-jarvis-muted">Accountability</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {(["light", "steady", "firm"] as const).map((style) => (
                 <button
-                  key={c}
+                  key={style}
                   type="button"
-                  onClick={() => setCommunication(c)}
+                  onClick={() => setAccountabilityStyle(style)}
                   className={`rounded-full px-3 py-1 text-xs capitalize ${
-                    communication === c
+                    accountabilityStyle === style
                       ? "bg-jarvis-accent text-slate-900"
                       : "border border-jarvis-border text-jarvis-muted"
                   }`}
                 >
-                  {c}
+                  {style}
                 </button>
               ))}
             </div>
-            <div className="flex gap-2">
-              {(["calm", "upbeat"] as const).map((e) => (
-                <button
-                  key={e}
-                  type="button"
-                  onClick={() => setEnergy(e)}
-                  className={`rounded-full px-3 py-1 text-xs capitalize ${
-                    energy === e
-                      ? "bg-jarvis-accent text-slate-900"
-                      : "border border-jarvis-border text-jarvis-muted"
-                  }`}
-                >
-                  {e}
-                </button>
-              ))}
             </div>
             <textarea
               value={customNotes}

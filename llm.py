@@ -30,11 +30,13 @@ def build_system_message(
     self_perception,
     companion_prefs: CompanionPreferences | None = None,
     learned_preference_memories: list | None = None,
+    effective_personality=None,
 ):
     personality_layer = build_personality_layer(
         companion_prefs,
         learned_snippets=learned_preference_memories,
         runtime_personality=personality_state,
+        effective_personality=effective_personality,
     )
 
     personal_from_context = context.get("personal_memories", personal_memories)
@@ -153,6 +155,7 @@ def build_chat_messages(
     self_perception,
     companion_prefs=None,
     learned_preference_memories=None,
+    effective_personality=None,
 ):
     system_message = build_system_message(
         profile,
@@ -170,6 +173,7 @@ def build_chat_messages(
         self_perception,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
+        effective_personality=effective_personality,
     )
     recent_conversation = _compress_conversation_for_llm(conversation, max_recent=6)
     return [{"role": "system", "content": system_message}] + recent_conversation
@@ -224,6 +228,7 @@ def chat_stream(
     *,
     companion_prefs=None,
     learned_preference_memories=None,
+    effective_personality=None,
     echo_to_terminal: bool = False,
 ) -> Iterator[str]:
     messages = build_chat_messages(
@@ -243,6 +248,7 @@ def chat_stream(
         self_perception,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
+        effective_personality=effective_personality,
     )
 
     try:
@@ -286,6 +292,7 @@ def chat(
     *,
     companion_prefs=None,
     learned_preference_memories=None,
+    effective_personality=None,
     echo_to_terminal: bool = True,
 ):
     full_response = ""
@@ -306,6 +313,7 @@ def chat(
         self_perception,
         companion_prefs=companion_prefs,
         learned_preference_memories=learned_preference_memories,
+        effective_personality=effective_personality,
         echo_to_terminal=echo_to_terminal,
     ):
         full_response += delta

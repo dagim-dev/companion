@@ -13,12 +13,12 @@ from curiosity_engine import maybe_add_initiative
 from llm import chat, chat_stream
 from memory import (
     add_emotional_history,
+    create_conversation_message,
     detect_emotional_patterns,
     get_emotional_profile,
     get_profile,
     set_emotional_state,
 )
-from memory_intelligence import extract_user_insights
 from companion_prefs import get_companion_preferences, save_runtime_personality
 from persistence_policy import (
     PersistenceCycleClock,
@@ -31,9 +31,14 @@ from memory_recall import (
     retrieve_relevant_personal_memories,
     retrieve_style_preference_memories,
 )
-from preference_consolidation import maybe_consolidate_preferences
 from memory_retriever import retrieve_relevant_reflections
-from personal_memory import extract_personal_memories, save_personal_memory
+from memory_insights import get_recent_insights
+from learned_preferences import get_active_learned_preferences
+from memory_extraction_jobs import enqueue_extraction_job
+from personality_composer import (
+    compose_effective_personality,
+    runtime_modifiers_for_turn,
+)
 from reflection_engine import (
     detect_reflection_topic,
     generate_checkin,
@@ -64,6 +69,7 @@ class PreparedTurn:
     followup: Optional[str]
     companion_prefs: Any = None
     learned_preference_memories: list = field(default_factory=list)
+    effective_personality: Any = None
 
 
 def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
@@ -76,9 +82,6 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
 
     state.conversation.append({"role": "user", "content": user_input})
     state.turn_count += 1
-
-    for memory_item in extract_personal_memories(user_input):
-        save_personal_memory(memory_item)
 
     sentiment = state.analyzer.polarity_scores(user_input)
     emotion, intensity = detect_emotion(user_input, sentiment)
@@ -139,13 +142,18 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
     if cognition.memory_to_surface:
         context["cognition_memory_hint"] = cognition.memory_to_surface
 
-    insights = extract_user_insights(
-        state.conversation, emotional_profile["state"]
+    insights = get_recent_insights(limit=20)
+    active_learned_preferences = get_active_learned_preferences(limit=8)
+    runtime_modifiers = runtime_modifiers_for_turn(
+        emotion=emotion,
+        intent=intent,
+        intensity=intensity,
+        patterns=patterns,
     )
-    maybe_consolidate_preferences(
-        len(state.conversation),
-        insights=insights,
+    effective_personality = compose_effective_personality(
         companion_prefs=state.companion_prefs,
+        learned_preferences=active_learned_preferences,
+        runtime_modifiers=runtime_modifiers,
     )
 
     checkin = generate_checkin()
@@ -157,6 +165,7 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
         emotional_profile,
         state.internal_state.snapshot(),
         companion_prefs=state.companion_prefs,
+        effective_personality=effective_personality,
     )
     behavior = apply_cognition_to_behavior(behavior, cognition)
 
@@ -193,6 +202,7 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
         followup=followup,
         companion_prefs=state.companion_prefs,
         learned_preference_memories=learned_preference_memories,
+        effective_personality=effective_personality,
     )
 
 
@@ -221,6 +231,20 @@ def finalize_response(
         response += f"\n\n{turn.followup}"
 
     state.conversation.append({"role": "assistant", "content": response})
+    user_message_id = create_conversation_message(
+        state.user_id,
+        "user",
+        turn.user_input,
+    )
+    create_conversation_message(
+        state.user_id,
+        "assistant",
+        response,
+    )
+    enqueue_extraction_job(
+        message_id=user_message_id,
+        message_content=turn.user_input,
+    )
     _maybe_create_episode(state, turn)
     _maybe_persist_runtime(state)
     return response
@@ -291,6 +315,7 @@ def _llm_kwargs(state: JarvisState, turn: PreparedTurn) -> dict[str, Any]:
         "self_perception": state.self_perception.snapshot(),
         "companion_prefs": turn.companion_prefs,
         "learned_preference_memories": turn.learned_preference_memories or [],
+        "effective_personality": turn.effective_personality,
     }
 
 

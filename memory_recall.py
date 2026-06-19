@@ -4,6 +4,7 @@ from embedding_engine import (
     create_embedding,
     cosine_similarity,
 )
+from learned_preferences import get_active_learned_preferences
 
 import json
 
@@ -72,6 +73,16 @@ def retrieve_relevant_personal_memories(user_input):
 
 def retrieve_style_preference_memories(user_input, limit: int = 3):
     """Recall interaction_style and preference memories for personality layer."""
+    learned = [
+        {
+            "category": "learned_preference",
+            "key": pref["preference_key"],
+            "value": f"{pref['preference_key']} -> {pref['value']}",
+            "score": pref["confidence"],
+            "preference_id": pref["id"],
+        }
+        for pref in get_active_learned_preferences(limit=limit)
+    ]
     uid = require_user_id()
     conn = get_connection()
     cursor = conn.cursor()
@@ -90,11 +101,11 @@ def retrieve_style_preference_memories(user_input, limit: int = 3):
     conn.close()
 
     if not rows:
-        return []
+        return learned[:limit]
 
     input_embedding = create_embedding(user_input)
     if input_embedding is None:
-        return [
+        legacy = [
             {
                 "category": row["category"],
                 "key": row["key"],
@@ -103,6 +114,7 @@ def retrieve_style_preference_memories(user_input, limit: int = 3):
             }
             for row in rows[:limit]
         ]
+        return (learned + legacy)[:limit]
 
     scored = []
     for row in rows:
@@ -123,4 +135,4 @@ def retrieve_style_preference_memories(user_input, limit: int = 3):
         })
 
     scored.sort(key=lambda x: x["score"], reverse=True)
-    return scored[:limit]
+    return (learned + scored)[:limit]

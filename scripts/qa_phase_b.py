@@ -7,14 +7,7 @@ import uuid
 import httpx
 
 BASE = "http://127.0.0.1:8000"
-VALID_ROLES = {
-    "strategic_partner",
-    "fitness_coach",
-    "calm_companion",
-    "creative_sparring",
-    "productivity_operator",
-    "general_jarvis",
-}
+VALID_ROLES = {"general_jarvis"}
 RESULTS = []
 
 
@@ -54,12 +47,12 @@ def main():
         ok = r.status_code == 409 and code == "needs_onboarding"
         record("3.1", "Chat gate", "pass" if ok else "fail", "409 needs_onboarding", f"{r.status_code} {json.dumps(detail)[:200]}")
 
-        # 3.2 roles
+        # 3.2 roles compatibility
         r2 = client.get(f"{BASE}/v1/onboarding/roles", headers=h, timeout=10)
         roles = r2.json() if r2.status_code == 200 else []
         ids = {x["id"] for x in roles} if isinstance(roles, list) else set()
         ok2 = r2.status_code == 200 and ids == VALID_ROLES
-        record("3.2", "Role catalog", "pass" if ok2 else "fail", f"6 roles {VALID_ROLES}", f"status={r2.status_code} ids={ids}")
+        record("3.2", "Role catalog", "pass" if ok2 else "fail", f"Jarvis-only {VALID_ROLES}", f"status={r2.status_code} ids={ids}")
 
         # 3.4 invalid role (before complete)
         r4 = client.post(
@@ -96,9 +89,10 @@ def main():
             f"{BASE}/v1/onboarding/complete",
             headers=h,
             json={
-                "role_id": "calm_companion",
                 "communication": "gentle",
                 "energy": "calm",
+                "challenge_level": "low",
+                "emotional_support": "high",
                 "address_as": "Boss",
             },
             timeout=10,
@@ -110,20 +104,20 @@ def main():
         # 3.6 GET preferences
         r6 = client.get(f"{BASE}/v1/preferences", headers=h, timeout=10)
         p6 = r6.json() if r6.status_code == 200 else {}
-        ok6 = r6.status_code == 200 and p6.get("role_id") == "calm_companion"
-        record("3.6", "GET preferences", "pass" if ok6 else "fail", "calm_companion", json.dumps(p6)[:200])
+        ok6 = r6.status_code == 200 and p6.get("role_id") == "general_jarvis"
+        record("3.6", "GET preferences", "pass" if ok6 else "fail", "general_jarvis", json.dumps(p6)[:200])
 
         # 3.7 PUT preferences
         r7 = client.put(
             f"{BASE}/v1/preferences",
             headers=h,
-            json={"role_id": "productivity_operator", "communication": "direct"},
+            json={"communication": "direct", "challenge_level": "high"},
             timeout=10,
         )
         r7b = client.get(f"{BASE}/v1/preferences", headers=h, timeout=10)
         p7 = r7b.json() if r7b.status_code == 200 else {}
-        ok7 = r7.status_code == 200 and p7.get("role_id") == "productivity_operator"
-        record("3.7", "PUT preferences", "pass" if ok7 else "fail", "productivity_operator", json.dumps(p7)[:200])
+        ok7 = r7.status_code == 200 and p7.get("challenge_level") == "high"
+        record("3.7", "PUT preferences", "pass" if ok7 else "fail", "challenge_level high", json.dumps(p7)[:200])
 
         # 3.8 me after onboard
         r8 = client.get(f"{BASE}/v1/auth/me", headers=h, timeout=10)

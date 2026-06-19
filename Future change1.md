@@ -1,5 +1,7 @@
 # Future Changes — Companion Roadmap
 
+> SSE threading decision recorded in [docs/decisions/0002-async-sse-thread-offload.md](docs/decisions/0002-async-sse-thread-offload.md). Scaling roadmap below remains living notes.
+
 This document records architectural decisions and planned scaling work. It is a living roadmap, not an implementation spec.
 
 ---

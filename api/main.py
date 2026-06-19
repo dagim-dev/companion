@@ -9,10 +9,20 @@ import logging
 
 from logging_config import configure_logging
 from memory import init_db
-from api.routers import auth, chat, health, onboarding, preferences, profile, voice
+from memory_extraction_worker import start_worker, stop_worker
+from api.routers import (
+    auth,
+    chat,
+    dev_memory,
+    health,
+    onboarding,
+    preferences,
+    profile,
+    voice,
+)
+from auth_jwt import get_jwt_secret
 
-if config.ENV == "production" and not config.JWT_SECRET:
-    raise RuntimeError("JWT_SECRET must be set when ENV=production")
+get_jwt_secret()
 
 app = FastAPI(title="JARVIS API", version="2.0.0")
 
@@ -29,9 +39,15 @@ app.add_middleware(
 def startup() -> None:
     configure_logging()
     init_db()
+    start_worker()
     logging.getLogger("api.main").info(
         "JARVIS API ready — persistence logs appear on POST /v1/chat (not on /health or /v1/profile)"
     )
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    await stop_worker()
 
 
 @app.exception_handler(Exception)
@@ -60,3 +76,4 @@ app.include_router(preferences.router)
 app.include_router(profile.router)
 app.include_router(chat.router)
 app.include_router(voice.router)
+app.include_router(dev_memory.router)

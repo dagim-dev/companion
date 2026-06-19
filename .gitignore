@@ -5,6 +5,7 @@
 !frontend/.env.local.example
 
 # Python
+.venv/
 venv/
 __pycache__/
 *.py[cod]

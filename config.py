@@ -8,7 +8,7 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # Calm British male — set in ElevenLabs dashboard or env
 ELEVENLABS_VOICE_ID = os.getenv(
     "ELEVENLABS_VOICE_ID",
-    "onwK4e9ZLuTAKqWW03F9",  # Daniel (British) — override via .env
+    "cgSgspJ2msm6clMCkdW9",  # Daniel (British) — override via .env
 )
 
 JWT_SECRET = os.getenv("JWT_SECRET")

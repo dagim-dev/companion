@@ -30,7 +30,10 @@ def _hydrate_state(state: JarvisState) -> None:
     prefs = get_companion_preferences(state.user_id)
     state.companion_prefs = prefs
     if prefs and prefs.runtime_json:
-        ps = prefs.runtime_json.get("personality_state")
+        ps = (
+            prefs.runtime_json.get("runtime_state")
+            or prefs.runtime_json.get("personality_state")
+        )
         if ps:
             state.personality_state.load_snapshot(ps)
 
