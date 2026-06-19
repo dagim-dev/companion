@@ -1,6 +1,7 @@
+import asyncio
 import json
 import traceback
-from typing import Annotated, AsyncIterator
+from typing import Annotated, AsyncIterator, Callable, Iterator, TypeVar, cast
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -20,6 +21,9 @@ from session_state import JarvisState
 
 router = APIRouter(prefix="/v1", tags=["chat"])
 
+T = TypeVar("T")
+_STREAM_END = object()
+
 
 def _require_onboarding(user_id: str) -> None:
     if not is_onboarding_complete(user_id):
@@ -36,17 +40,58 @@ def _sse_event(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
 
 
+async def _to_thread_with_user_scope(
+    user_id: str,
+    func: Callable[..., T],
+    *args,
+    **kwargs,
+) -> T:
+    def run_scoped() -> T:
+        with user_scope(user_id):
+            return func(*args, **kwargs)
+
+    return await asyncio.to_thread(run_scoped)
+
+
+def _next_llm_token_scoped(
+    user_id: str,
+    tokens: Iterator[str],
+) -> str | object:
+    with user_scope(user_id):
+        return next(tokens, _STREAM_END)
+
+
+async def _stream_llm_tokens_threaded(
+    state: JarvisState,
+    turn: PreparedTurn,
+) -> AsyncIterator[str]:
+    tokens = stream_llm_tokens(state, turn, echo_to_terminal=False)
+
+    while True:
+        item = await asyncio.to_thread(
+            _next_llm_token_scoped,
+            state.user_id,
+            tokens,
+        )
+        if item is _STREAM_END:
+            return
+        yield cast(str, item)
+
+
 async def _chat_stream_events(state: JarvisState, message: str) -> AsyncIterator[str]:
-    # ContextVar must be set in the same execution context as sync pipeline code.
-    with user_scope(state.user_id):
-        async for event in _chat_stream_events_scoped(state, message):
-            yield event
+    async for event in _chat_stream_events_scoped(state, message):
+        yield event
 
 
 async def _chat_stream_events_scoped(
     state: JarvisState, message: str
 ) -> AsyncIterator[str]:
-    turn: PreparedTurn | None = prepare_turn(state, message)
+    turn: PreparedTurn | None = await _to_thread_with_user_scope(
+        state.user_id,
+        prepare_turn,
+        state,
+        message,
+    )
 
     if turn is None:
         text = (
@@ -64,12 +109,18 @@ async def _chat_stream_events_scoped(
         return
 
     raw_parts: list[str] = []
-    for token in stream_llm_tokens(state, turn, echo_to_terminal=False):
+    async for token in _stream_llm_tokens_threaded(state, turn):
         raw_parts.append(token)
         yield _sse_event({"type": "token", "content": token})
 
     raw_response = "".join(raw_parts)
-    final_response = finalize_response(state, turn, raw_response)
+    final_response = await _to_thread_with_user_scope(
+        state.user_id,
+        finalize_response,
+        state,
+        turn,
+        raw_response,
+    )
 
     yield _sse_event(
         {

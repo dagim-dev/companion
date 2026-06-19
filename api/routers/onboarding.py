@@ -19,7 +19,13 @@ def _prefs_to_response(prefs) -> PreferencesResponse:
         role_id=prefs.role_id,
         communication=prefs.communication,
         energy=prefs.energy,
+        challenge_level=prefs.challenge_level,
+        emotional_support=prefs.emotional_support,
+        detail_level=prefs.detail_level,
+        examples_preference=prefs.examples_preference,
+        accountability_style=prefs.accountability_style,
         sliders=prefs.sliders.to_dict(),
+        baseline_directives=prefs.baseline_directives,
         custom_notes=prefs.custom_notes,
         onboarding_completed=prefs.onboarding_completed,
         template_version=prefs.template_version,
@@ -46,6 +52,11 @@ def onboarding_complete(
                 display_name=body.display_name,
                 custom_notes=body.custom_notes,
                 user_id=user_id,
+                challenge_level=body.challenge_level,
+                emotional_support=body.emotional_support,
+                detail_level=body.detail_level,
+                examples_preference=body.examples_preference,
+                accountability_style=body.accountability_style,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc

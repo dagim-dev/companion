@@ -1,4 +1,60 @@
-def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=None):
+def _clamp(value, minimum=0.0, maximum=1.0):
+    return max(minimum, min(maximum, value))
+
+
+def apply_cognition_to_behavior(behavior: dict, cognition) -> dict:
+    behavior = dict(behavior)
+
+    tone_override = getattr(cognition, "tone_override", "none")
+    approach = getattr(cognition, "approach", "stay_brief")
+
+    if tone_override == "warmer":
+        behavior["warmth"] = behavior.get("warmth", 0.0) + 0.15
+        behavior["sarcasm"] = behavior.get("sarcasm", 0.0) * 0.5
+    elif tone_override == "grounded":
+        behavior["tone"] = "grounded"
+        if behavior.get("coping") is None:
+            behavior["coping"] = "grounding"
+    elif tone_override == "clear":
+        behavior["tone"] = "clear"
+        behavior["style"] = "solution_oriented"
+    elif tone_override == "thoughtful":
+        behavior["tone"] = "thoughtful"
+        behavior["verbosity"] = "long"
+
+    if approach == "validate_first":
+        behavior["warmth"] = max(behavior.get("warmth", 0.0), 0.75)
+        behavior["verbosity"] = "short"
+    elif approach == "grounding":
+        behavior["coping"] = "grounding"
+        behavior["sarcasm"] = 0
+    elif approach == "stay_brief":
+        behavior["verbosity"] = "short"
+    elif approach == "solution_focus":
+        behavior["style"] = "solution_oriented"
+        behavior["tone"] = "clear"
+
+    behavior["warmth"] = _clamp(behavior.get("warmth", 0.0))
+    behavior["sarcasm"] = _clamp(behavior.get("sarcasm", 0.0))
+    return behavior
+
+
+def _effective_sliders(effective_personality):
+    if effective_personality is None:
+        return None
+    sliders = getattr(effective_personality, "final_sliders", None)
+    if not sliders:
+        return None
+    return sliders
+
+
+def decide_behavior(
+    intent,
+    emotional_profile,
+    internal_state,
+    companion_prefs=None,
+    effective_personality=None,
+):
     state = emotional_profile["state"]["current"]
     intensity = emotional_profile["state"]["intensity"]
     baseline = emotional_profile["baseline"]
@@ -7,10 +63,14 @@ def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=N
     concern = internal_state.get("concern")
 
     support_level = 0.5
-    role_id = "general_jarvis"
-    if companion_prefs is not None:
+    effective_sliders = _effective_sliders(effective_personality)
+    if effective_sliders is not None:
+        support_level = effective_sliders.get(
+            "emotional_support",
+            effective_sliders.get("emotional_support_level", 0.5),
+        )
+    elif companion_prefs is not None:
         support_level = companion_prefs.sliders.emotional_support_level
-        role_id = companion_prefs.role_id
 
     # --- Default Jarvis behavior ---
     behavior = {
@@ -24,7 +84,15 @@ def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=N
     }
 
     # Scale default sarcasm/warmth from sliders
-    if companion_prefs is not None:
+    if effective_sliders is not None:
+        behavior["sarcasm"] = effective_sliders.get("humor", 0.35) * 0.5
+        behavior["warmth"] = effective_sliders.get("warmth", 0.55)
+        verbosity = effective_sliders.get("verbosity", 0.5)
+        if verbosity <= 0.35:
+            behavior["verbosity"] = "short"
+        elif verbosity >= 0.7:
+            behavior["verbosity"] = "long"
+    elif companion_prefs is not None:
         behavior["sarcasm"] = companion_prefs.sliders.humor * 0.5
         behavior["warmth"] = companion_prefs.sliders.warmth
         if companion_prefs.sliders.verbosity <= 0.35:
@@ -45,7 +113,7 @@ def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=N
 
         # Full wellness scripts only when user wants high support or calm role
         apply_full_support = (
-            support_level >= 0.65 or role_id == "calm_companion"
+            support_level >= 0.65
         )
 
         if apply_full_support:
@@ -58,7 +126,7 @@ def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=N
             if baseline in ["anxiety", "stress"]:
                 behavior["coping"] = "grounding"
         else:
-            # Lighter touch for fitness_coach, strategic_partner, etc.
+            # Lighter touch when the user baseline has lower support.
             behavior["confidence"] = 0.75
             if intensity > 0.8 and support_level >= 0.45:
                 behavior["coping"] = "grounding"
@@ -126,14 +194,6 @@ def decide_behavior(intent, emotional_profile, internal_state, companion_prefs=N
         behavior["tone"] = "composed"
         behavior["verbosity"] = "medium"
         behavior["style"] = "adaptive"
-
-    # Role-specific nudges
-    if role_id == "fitness_coach" and intent in ("help_request", "casual_talk"):
-        behavior["style"] = "accountable"
-        behavior["tone"] = "direct"
-    if role_id == "productivity_operator" and intent == "help_request":
-        behavior["style"] = "structured"
-        behavior["verbosity"] = "medium"
 
     # =========================================================
     # Internal State Influence
