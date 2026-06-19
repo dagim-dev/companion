@@ -10,7 +10,31 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Added
 
+- `personality_composer.py` — composes effective personality from onboarding sliders, learned modifiers, and runtime adaptation
+- `learned_preferences.py` — aggregates memory-extraction insights into persistent style modifiers
+- Async memory extraction: `memory_extraction_jobs.py`, `memory_extraction_worker.py`, `memory_insights.py` (background worker started on API startup)
+- Migration `005_memory_extraction_jobs.py`
+- Dev memory tooling: `api/routers/dev_memory.py`, `frontend/src/app/dev/memory-extraction/page.tsx`
+- V2 preference fields in onboarding and settings (challenge, detail, examples, accountability)
+- `POST /v1/preferences/reset-learned` — clear learned style modifiers
+- Test suite expanded to 103 tests (cognition, follow-ups, extraction, preferences, message processor, personality)
 - Documentation overhaul: `docs/ARCHITECTURE.md`, ADRs in `docs/decisions/`, `.env.example`, this changelog
+
+### Changed
+
+- Companion personality: slider-based prefs (`template_version: "2"`) replace six fixed YAML role templates
+- `companion_prefs.py`, `prompt_builder.py`, `OnboardingWizard`, `SettingsPanel` updated for v2 preference model
+- `memory_intelligence.py` — expanded insight extraction; hot path enqueues jobs instead of blocking on extraction
+- `message_processor.py` — integrates personality composer and extraction job enqueue on finalize
+
+### Removed
+
+- Six YAML role templates in `prompts/roles/`
+- `preference_consolidation.py` — replaced by `learned_preferences.py`
+
+### Deprecated
+
+- `role_id` on onboarding/preferences APIs — accepted for backward compatibility but always stored as `general_jarvis`; use sliders and learned preferences to shape personality
 
 ## [0.3.0] - 2026-06-12
 
@@ -74,7 +98,6 @@ Version numbers below are inferred from git history — the repo has no release 
 - `api/` package with routers: auth, chat, onboarding, preferences, profile, voice, health
 - `companion_prefs.py`, `prompt_builder.py` — six companion roles via YAML templates
 - `memory_scope.py`, `state_store.py` — per-user DB scoping and session cache
-- `personality_composer.py`, learned preferences, runtime adaptation
 - Migrations `001_add_user_id.py`, `002_companion_preferences.py`
 - Next.js frontend: auth gate, onboarding wizard, settings panel, voice controls
 - Voice gating via `voice_capabilities.py` and expanded `/health` payload

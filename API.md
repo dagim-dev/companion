@@ -197,6 +197,8 @@ Chat endpoints return **409** until onboarding is complete (see [Chat errors](#e
 ]
 ```
 
+> **Note:** Earlier versions offered six fixed role personas via YAML templates. Those were removed in favor of slider-based preferences plus learned adaptation. The `role_id` field is still accepted on write requests for backward compatibility but is always stored as `general_jarvis`; personality is shaped by the slider fields, `custom_notes`, and learned preferences.
+
 ---
 
 ### Complete onboarding
