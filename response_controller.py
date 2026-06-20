@@ -32,18 +32,19 @@ def detect_tone_violation(response, intent):
 # SOFTEN RESPONSE
 # =========================================================
 
-def soften_response(response):
+def soften_response(response, address_as: str | None = None):
     """
     Removes excessive aggression or chaotic phrasing.
     """
 
+    address = (address_as or "").strip() or "there"
     replacements = {
         "obviously": "",
         "shut up": "",
-        "idiot": "Sir",
-        "dummy": "Sir",
+        "idiot": address,
+        "dummy": address,
         "stupid": "unwise",
-        "moron": "Sir"
+        "moron": address,
     }
 
     for old, new in replacements.items():
@@ -62,7 +63,7 @@ def soften_response(response):
 # MAIN REFINEMENT
 # =========================================================
 
-def refine_response(response, intent, behavior):
+def refine_response(response, intent, behavior, address_as: str | None = None):
 
     tone = behavior.get("tone", "composed")
 
@@ -72,10 +73,11 @@ def refine_response(response, intent, behavior):
 
     if intent == "anxiety_stress":
 
-        response = soften_response(response)
+        response = soften_response(response, address_as=address_as)
+        address_prefix = f"{address_as.strip()}, " if (address_as or "").strip() else ""
 
         return (
-            "Alright, Sir. One step at a time. "
+            f"Alright, {address_prefix}one step at a time. "
             + response
         )
 
@@ -91,7 +93,7 @@ def refine_response(response, intent, behavior):
         )
 
     # -----------------------------------------------------
-    # JARVIS POLISH LAYER
+    # NOVA POLISH LAYER
     # -----------------------------------------------------
 
     if tone == "composed":
@@ -124,18 +126,19 @@ def refine_response(response, intent, behavior):
 # FINAL CONTROLLER
 # =========================================================
 
-def control_response(response, behavior, intent):
+def control_response(response, behavior, intent, address_as: str | None = None):
 
     # 1. Refine response
     response = refine_response(
         response,
         intent,
-        behavior
+            behavior,
+            address_as=address_as,
     )
 
     # 2. Detect violations
     if detect_tone_violation(response, intent):
 
-        response = soften_response(response)
+        response = soften_response(response, address_as=address_as)
 
     return response

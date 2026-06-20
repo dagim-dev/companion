@@ -7,9 +7,9 @@ from prompt_builder import build_personality_layer
 
 
 class PromptBuilderV2Tests(unittest.TestCase):
-    def test_effective_personality_prompt_has_jarvis_identity_without_role_sections(self):
+    def test_effective_personality_prompt_has_nova_identity_without_role_sections(self):
         effective = EffectivePersonality(
-            identity="jarvis",
+            identity="nova",
             baseline_sliders=SliderPrefs().to_dict(),
             learned_modifiers=[
                 {
@@ -41,7 +41,7 @@ class PromptBuilderV2Tests(unittest.TestCase):
 
         prompt = build_personality_layer(effective_personality=effective)
 
-        self.assertIn("J.A.R.V.I.S.", prompt)
+        self.assertIn("NOVA", prompt)
         self.assertIn("USER BASELINE STYLE", prompt)
         self.assertIn("LEARNED USER PREFERENCES", prompt)
         self.assertIn("CURRENT CONTEXT ADAPTATION", prompt)
@@ -53,13 +53,13 @@ class PromptBuilderV2Tests(unittest.TestCase):
     def test_legacy_prompt_path_does_not_load_role_templates(self):
         prompt = build_personality_layer()
 
-        self.assertIn("J.A.R.V.I.S.", prompt)
+        self.assertIn("NOVA", prompt)
         self.assertNotIn("COMPANION ROLE", prompt)
         self.assertNotIn("ROLE EMPHASIS", prompt)
 
     def test_effective_personality_prompt_preserves_custom_notes(self):
         effective = EffectivePersonality(
-            identity="jarvis",
+            identity="nova",
             baseline_sliders={},
             learned_modifiers=[],
             runtime_modifiers=[],

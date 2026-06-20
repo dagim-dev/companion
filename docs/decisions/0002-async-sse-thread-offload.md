@@ -50,7 +50,7 @@ Decision criteria that favored B: preserve behavior and SSE contract, minimal sc
 **Negative (known limits):**
 
 - Default asyncio thread pool (~40 workers) caps concurrent blocking turns per process.
-- Shared in-memory `JarvisState` is not thread-safe; overlapping streams for the same user can race.
+- Shared in-memory `NovaState` is not thread-safe; overlapping streams for the same user can race.
 - SQLite concurrent writes can contend under load.
 - `ContextVar` must be set inside each worker thread, not only on the event-loop task.
 - Time-to-first-token still dominated by sync `prepare_turn()` work.

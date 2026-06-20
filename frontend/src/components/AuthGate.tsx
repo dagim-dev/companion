@@ -74,7 +74,7 @@ export function AuthGate({ children }: AuthGateProps) {
 
   if (!ready) {
     return (
-      <main className="flex h-dvh items-center justify-center text-jarvis-muted">
+      <main className="flex h-dvh items-center justify-center text-nova-muted">
         Loading…
       </main>
     );
@@ -83,24 +83,24 @@ export function AuthGate({ children }: AuthGateProps) {
   if (!authenticated) {
     return (
       <main className="flex h-dvh flex-col items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-xl border border-jarvis-border bg-jarvis-panel/80 p-6">
-          <h1 className="text-lg font-semibold text-slate-100">J.A.R.V.I.S.</h1>
-          <p className="mt-1 text-sm text-jarvis-muted">
+        <div className="w-full max-w-sm rounded-xl border border-nova-border bg-nova-panel/80 p-6">
+          <h1 className="text-lg font-semibold text-slate-100">NOVA</h1>
+          <p className="mt-1 text-sm text-nova-muted">
             {mode === "login" ? "Sign in to continue" : "Create an account"}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-            <label className="block text-sm text-jarvis-muted">
+            <label className="block text-sm text-nova-muted">
               Email
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-jarvis-border bg-jarvis-bg px-3 py-2 text-slate-100"
+                className="mt-1 w-full rounded-lg border border-nova-border bg-nova-bg px-3 py-2 text-slate-100"
               />
             </label>
-            <label className="block text-sm text-jarvis-muted">
+            <label className="block text-sm text-nova-muted">
               Password
               <input
                 type="password"
@@ -108,7 +108,7 @@ export function AuthGate({ children }: AuthGateProps) {
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-jarvis-border bg-jarvis-bg px-3 py-2 text-slate-100"
+                className="mt-1 w-full rounded-lg border border-nova-border bg-nova-bg px-3 py-2 text-slate-100"
               />
             </label>
             {error && (
@@ -133,7 +133,7 @@ export function AuthGate({ children }: AuthGateProps) {
               setMode(mode === "login" ? "register" : "login");
               setError(null);
             }}
-            className="mt-4 w-full text-center text-xs text-jarvis-muted hover:text-slate-300"
+            className="mt-4 w-full text-center text-xs text-nova-muted hover:text-slate-300"
           >
             {mode === "login"
               ? "Need an account? Register"
@@ -160,7 +160,7 @@ export function AuthGate({ children }: AuthGateProps) {
         <button
           type="button"
           onClick={handleSignOut}
-          className="rounded-full border border-jarvis-border px-3 py-1 text-xs text-jarvis-muted hover:text-slate-200"
+          className="rounded-full border border-nova-border px-3 py-1 text-xs text-nova-muted hover:text-slate-200"
         >
           Sign out
         </button>

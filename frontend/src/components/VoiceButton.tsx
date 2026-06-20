@@ -109,7 +109,7 @@ export function VoiceButton({
         className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
           recording
             ? "border-red-500 bg-red-500/20 text-red-400"
-            : "border-jarvis-border bg-jarvis-panel text-jarvis-muted hover:border-jarvis-accent hover:text-jarvis-accent"
+            : "border-nova-border bg-nova-panel text-nova-muted hover:border-nova-accent hover:text-nova-accent"
         } disabled:opacity-40`}
         title="Hold to speak"
         aria-label="Hold to speak"
@@ -127,7 +127,7 @@ export function VoiceButton({
         type="button"
         disabled={disabled || busy || !lastAssistantText}
         onClick={playLastResponse}
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-jarvis-border bg-jarvis-panel text-jarvis-muted transition hover:border-jarvis-accent hover:text-jarvis-accent disabled:opacity-40"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-nova-border bg-nova-panel text-nova-muted transition hover:border-nova-accent hover:text-nova-accent disabled:opacity-40"
         title="Play last response"
         aria-label="Play last response"
       >

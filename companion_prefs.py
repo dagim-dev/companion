@@ -20,7 +20,7 @@ VALID_ROLE_IDS = frozenset({
     "calm_companion",
     "creative_sparring",
     "productivity_operator",
-    "general_jarvis",
+    "general_nova",
 })
 
 VALID_COMMUNICATION = frozenset({"direct", "balanced", "gentle"})
@@ -88,7 +88,7 @@ class BaselinePersonality:
 @dataclass
 class CompanionPreferences:
     user_id: str
-    role_id: str = "general_jarvis"
+    role_id: str = "general_nova"
     communication: str = "balanced"
     energy: str = "calm"
     challenge_level: str = "medium"
@@ -141,7 +141,7 @@ def onboarding_answers_to_baseline(
     examples_preference: str = "when_useful",
     accountability_style: str = "steady",
 ) -> BaselinePersonality:
-    """Map Jarvis onboarding answers to stable baseline sliders and directives."""
+    """Map NOVA onboarding answers to stable baseline sliders and directives."""
     if communication_style not in VALID_COMMUNICATION:
         raise ValueError(f"Invalid communication: {communication_style}")
     if energy_level not in VALID_ENERGY:
@@ -234,7 +234,7 @@ def _row_to_prefs(row) -> CompanionPreferences:
 
     return CompanionPreferences(
         user_id=row["user_id"],
-        role_id="general_jarvis",
+        role_id="general_nova",
         communication=baseline.get(
             "communication_style", prefs_data.get("communication", "balanced")
         ),
@@ -351,7 +351,7 @@ def complete_onboarding(
     )
     prefs = CompanionPreferences(
         user_id=uid,
-        role_id="general_jarvis",
+        role_id="general_nova",
         communication=communication,
         energy=energy,
         challenge_level=challenge_level,
@@ -398,7 +398,7 @@ def update_companion_preferences(
     if role_id is not None:
         if role_id not in VALID_ROLE_IDS:
             raise ValueError(f"Invalid role_id: {role_id}")
-        existing.role_id = "general_jarvis"
+        existing.role_id = "general_nova"
     if communication is not None:
         if communication not in VALID_COMMUNICATION:
             raise ValueError(f"Invalid communication: {communication}")
@@ -508,8 +508,8 @@ def clear_learned_style(user_id: str | None = None) -> None:
 def list_role_catalog() -> list[dict[str, str]]:
     return [
         {
-            "id": "general_jarvis",
-            "title": "General JARVIS",
+            "id": "general_nova",
+            "title": "General NOVA",
             "description": "Balanced, capable companion for everyday use",
         },
     ]

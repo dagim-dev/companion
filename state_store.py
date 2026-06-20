@@ -3,11 +3,11 @@ import time
 
 from companion_prefs import get_companion_preferences
 from memory import get_recent_conversations
-from session_state import JarvisState, create_state
+from session_state import NovaState, create_state
 
 _STATE_TTL_SECONDS = 3600  # 1 hour
 
-_states: dict[str, tuple[JarvisState, float]] = {}
+_states: dict[str, tuple[NovaState, float]] = {}
 _states_lock = threading.Lock()
 
 
@@ -26,7 +26,7 @@ def _cleanup_expired_states(now: float) -> None:
         del _states[uid]
 
 
-def _hydrate_state(state: JarvisState) -> None:
+def _hydrate_state(state: NovaState) -> None:
     prefs = get_companion_preferences(state.user_id)
     state.companion_prefs = prefs
     if prefs and prefs.runtime_json:
@@ -40,13 +40,13 @@ def _hydrate_state(state: JarvisState) -> None:
     state.conversation = get_recent_conversations(state.user_id, limit=20)
 
 
-def _create_and_hydrate(user_id: str) -> JarvisState:
+def _create_and_hydrate(user_id: str) -> NovaState:
     state = create_state(user_id)
     _hydrate_state(state)
     return state
 
 
-def get_jarvis_state(user_id: str) -> JarvisState:
+def get_nova_state(user_id: str) -> NovaState:
     now = time.monotonic()
     with _states_lock:
         _cleanup_expired_states(now)

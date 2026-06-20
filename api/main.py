@@ -24,7 +24,7 @@ from auth_jwt import get_jwt_secret
 
 get_jwt_secret()
 
-app = FastAPI(title="JARVIS API", version="2.0.0")
+app = FastAPI(title="NOVA API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -41,7 +41,7 @@ def startup() -> None:
     init_db()
     start_worker()
     logging.getLogger("api.main").info(
-        "JARVIS API ready — persistence logs appear on POST /v1/chat (not on /health or /v1/profile)"
+        "NOVA API ready — persistence logs appear on POST /v1/chat (not on /health or /v1/profile)"
     )
 
 
@@ -62,7 +62,7 @@ async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
         status_code=500,
         content={
             "detail": (
-                "Apologies, Sir. An internal fault occurred. "
+                "Apologies. An internal fault occurred. "
                 "Please try again shortly."
             ),
         },

@@ -52,7 +52,7 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
             {"examples_frequency": "often"},
         )
 
-    def test_complete_onboarding_persists_v2_baseline_and_general_jarvis_identity(self):
+    def test_complete_onboarding_persists_v2_baseline_and_general_nova_identity(self):
         with user_scope("user-123"):
             prefs = complete_onboarding(
                 role_id="fitness_coach",
@@ -70,8 +70,8 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
             loaded = get_companion_preferences("user-123")
 
         self.assertEqual(TEMPLATE_VERSION, "2")
-        self.assertEqual(prefs.role_id, "general_jarvis")
-        self.assertEqual(loaded.role_id, "general_jarvis")
+        self.assertEqual(prefs.role_id, "general_nova")
+        self.assertEqual(loaded.role_id, "general_nova")
         self.assertEqual(loaded.challenge_level, "high")
         self.assertEqual(loaded.detail_level, "concise")
         self.assertEqual(loaded.baseline_directives["examples_frequency"], "often")
@@ -94,7 +94,7 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
     def test_runtime_json_persists_runtime_state_without_personality_slider_drift(self):
         with user_scope("user-123"):
             complete_onboarding(
-                role_id="general_jarvis",
+                role_id="general_nova",
                 communication="balanced",
                 energy="calm",
                 address_as="Dagi",
@@ -117,10 +117,10 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
         self.assertNotIn("humor", runtime_state)
         self.assertNotIn("formality", runtime_state)
 
-    def test_role_catalog_exposes_only_general_jarvis_compatibility_item(self):
+    def test_role_catalog_exposes_only_general_nova_compatibility_item(self):
         roles = list_role_catalog()
 
-        self.assertEqual([role["id"] for role in roles], ["general_jarvis"])
+        self.assertEqual([role["id"] for role in roles], ["general_nova"])
 
 
 if __name__ == "__main__":

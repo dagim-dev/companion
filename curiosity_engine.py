@@ -29,7 +29,7 @@ CURIOSITY_QUESTIONS = {
 
     "casual_talk": [
 
-        "Oddly specific, Sir. There's a story there.",
+        "Oddly specific. There's a story there.",
         "You seem unusually interested in that topic.",
         "That caught your attention for a reason."
     ]
@@ -108,7 +108,7 @@ class CuriosityEngine:
 OBSERVATIONS = [
     "You seem more focused today.",
     "Your tone is calmer than earlier.",
-    "You sound mentally exhausted, Sir.",
+    "You sound mentally exhausted.",
     "You're thinking several steps ahead again.",
     "That seems unusually important to you.",
 ]

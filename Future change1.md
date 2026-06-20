@@ -56,7 +56,7 @@ Several fixes were considered. Option B was selected as the best balance for thi
 - Time-to-first-token is still dominated by pre-LLM work in `prepare_turn()`; streaming only helps during generation.
 - Default asyncio thread-pool size (~40 workers) caps concurrent blocking turns per process.
 - A blocking sync OpenAI `next()` already running in a worker cannot be force-cancelled; only further token requests are avoided after disconnect.
-- Shared in-memory `JarvisState` per user (`state_store.py`) is not made thread-safe; overlapping streams for the same user can still race.
+- Shared in-memory `NovaState` per user (`state_store.py`) is not made thread-safe; overlapping streams for the same user can still race.
 
 ### Residual risks after Option B
 
@@ -64,7 +64,7 @@ Several fixes were considered. Option B was selected as the best balance for thi
 |------|------|------------------|
 | **SQLite** | Per-call connections (WAL + `busy_timeout`) avoid cross-thread connection reuse; concurrent writes can still contend or reorder | Acceptable at low concurrency; monitor lock waits |
 | **`user_scope`** | `ContextVar` must be set inside each worker thread, not only on the event-loop task | Enforced in `_to_thread_with_user_scope()` and per-token helpers |
-| **`JarvisState`** | Same user, two concurrent streams mutate one shared object | No per-user lock yet; rare for single-tab usage |
+| **`NovaState`** | Same user, two concurrent streams mutate one shared object | No per-user lock yet; rare for single-tab usage |
 | **OpenAI client** | Global sync `OpenAI` client shared across threads | Same pattern as sync `/v1/chat`; revisit if SDK thread-safety issues appear |
 
 ---
@@ -79,7 +79,7 @@ Work below is ordered roughly by when it becomes necessary. None of it is requir
 
 | Work item | What | Why |
 |-----------|------|-----|
-| Per-user turn serialization | Mutex or async lock per `user_id` around prepare → stream → finalize | Prevents same-user overlapping streams from corrupting `JarvisState`, conversation order, and `turn_count` |
+| Per-user turn serialization | Mutex or async lock per `user_id` around prepare → stream → finalize | Prevents same-user overlapping streams from corrupting `NovaState`, conversation order, and `turn_count` |
 | Dedicated executor for LLM work | Separate `ThreadPoolExecutor` with an explicit max size for chat turns | Isolates chat from other `to_thread` usage; makes concurrency tunable |
 | Stream error SSE / HTTP errors | `try/except` around threaded phases with explicit client-facing errors | Sync `/chat` returns 500 with detail; stream path should fail predictably |
 | Expanded tests | Same-user concurrent streams, slow LLM, client disconnect | Covers the main regression surfaces Option B introduces |
@@ -95,7 +95,7 @@ Work below is ordered roughly by when it becomes necessary. None of it is requir
 | Connection / write discipline | Audit all DB paths for short transactions; batch where safe | Reduces lock duration under concurrent threads |
 | Rate limiting per user | Cap concurrent streams and turns per minute | Protects thread pool and OpenAI quota |
 | Session TTL and cleanup | Already partially in `state_store.py`; tune TTL and eviction | Limits memory growth of `_states` dict |
-| Horizontal scaling prep | Externalize session state or require sticky sessions | Required before running multiple Uvicorn workers with shared `JarvisState` |
+| Horizontal scaling prep | Externalize session state or require sticky sessions | Required before running multiple Uvicorn workers with shared `NovaState` |
 
 ### Tier 3 — Production multi-worker / multi-instance
 
@@ -103,7 +103,7 @@ Work below is ordered roughly by when it becomes necessary. None of it is requir
 
 | Work item | What | Why |
 |-----------|------|-----|
-| **Session persistence** | Reload `JarvisState` from DB/Redis each turn, or sticky routing per user | In-memory `_states` does not work across workers or restarts |
+| **Session persistence** | Reload `NovaState` from DB/Redis each turn, or sticky routing per user | In-memory `_states` does not work across workers or restarts |
 | **Worker queue for turns** | arq, Celery, or a thin turn-engine subprocess; API proxies SSE from job events | Decouples LLM latency from API process; natural place for retries and metrics |
 | **Async persistence layer** | Async DB driver + `AsyncOpenAI` (Option D) | Best single-process concurrency; large refactor |
 | **Dedicated vector / memory service** | Move embeddings and recall off the hot path | `prepare_turn()` embedding work dominates pre-stream latency |
@@ -134,7 +134,7 @@ Work below is ordered roughly by when it becomes necessary. None of it is requir
 |------|------|
 | `api/routers/chat.py` | Async SSE endpoint and thread offloading |
 | `message_processor.py` | Sync turn pipeline (`prepare_turn`, `finalize_response`, `stream_llm_tokens`) |
-| `state_store.py` | Per-user in-memory `JarvisState` |
+| `state_store.py` | Per-user in-memory `NovaState` |
 | `memory_scope.py` | `user_scope` / `ContextVar` for DB isolation |
 | `memory.py` | SQLite access (per-call connections) |
 | `tests/test_chat_stream_threading.py` | Regression tests for offloading and SSE ordering |

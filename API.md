@@ -1,4 +1,4 @@
-# JARVIS HTTP API
+# NOVA HTTP API
 
 Reference for the Companion backend HTTP API (FastAPI `2.0.0`).
 
@@ -55,7 +55,7 @@ For local web dev without the login UI, set `NEXT_PUBLIC_DEV_TOKEN` in the front
 | `DATABASE_PATH` | `memory.db` | SQLite database file |
 | `OPENAI_API_KEY` | — | LLM + speech-to-text (Whisper) |
 | `ELEVENLABS_API_KEY` | — | Text-to-speech |
-| `ELEVENLABS_VOICE_ID` | Daniel (British) | Optional TTS voice override |
+| `ELEVENLABS_VOICE_ID` | Configured voice ID | Optional TTS voice override |
 | `VOICE_ENABLED` | `true` | Master switch for `/v1/transcribe` and `/v1/tts` |
 
 ---
@@ -190,14 +190,14 @@ Chat endpoints return **409** until onboarding is complete (see [Chat errors](#e
 ```json
 [
   {
-    "id": "general_jarvis",
-    "title": "General JARVIS",
+    "id": "general_nova",
+    "title": "General NOVA",
     "description": "Balanced, capable companion for everyday use"
   }
 ]
 ```
 
-> **Note:** Earlier versions offered six fixed role personas via YAML templates. Those were removed in favor of slider-based preferences plus learned adaptation. The `role_id` field is still accepted on write requests for backward compatibility but is always stored as `general_jarvis`; personality is shaped by the slider fields, `custom_notes`, and learned preferences.
+> **Note:** Earlier versions offered six fixed role personas via YAML templates. Those were removed in favor of slider-based preferences plus learned adaptation. The `role_id` field is still accepted on write requests for backward compatibility but is always stored as `general_nova`; personality is shaped by the slider fields, `custom_notes`, and learned preferences.
 
 ---
 
@@ -209,7 +209,7 @@ Chat endpoints return **409** until onboarding is complete (see [Chat errors](#e
 
 ```json
 {
-  "role_id": "general_jarvis",
+  "role_id": "general_nova",
   "communication": "balanced",
   "energy": "calm",
   "challenge_level": "medium",
@@ -217,7 +217,7 @@ Chat endpoints return **409** until onboarding is complete (see [Chat errors](#e
   "detail_level": "normal",
   "examples_preference": "when_useful",
   "accountability_style": "steady",
-  "address_as": "Sir",
+  "address_as": "Friend",
   "display_name": "You",
   "custom_notes": "Optional free-text notes"
 }
@@ -250,7 +250,7 @@ Returned by onboarding complete, `GET /v1/preferences`, and `PUT /v1/preferences
 
 ```json
 {
-  "role_id": "general_jarvis",
+  "role_id": "general_nova",
   "communication": "balanced",
   "energy": "calm",
   "challenge_level": "medium",
@@ -295,7 +295,7 @@ Send only the fields you want to change. Omitted fields are left unchanged.
 
 ```json
 {
-  "role_id": "general_jarvis",
+  "role_id": "general_nova",
   "communication": "direct",
   "energy": "upbeat",
   "challenge_level": "high",
@@ -424,7 +424,7 @@ How the companion addresses you in conversation.
 
 ```json
 {
-  "address_as": "Sir",
+  "address_as": "Friend",
   "name": "You"
 }
 ```
@@ -439,7 +439,7 @@ Either field may be `null` if not set.
 
 ```json
 {
-  "address_as": "Sir"
+  "address_as": "Friend"
 }
 ```
 
@@ -474,7 +474,7 @@ Both endpoints require **auth** and completed onboarding.
 
 ```json
 {
-  "response": "Good evening, Sir.",
+  "response": "Good evening, Friend.",
   "intent": "casual",
   "emotion": "neutral",
   "response_time_s": 3.42
@@ -494,7 +494,7 @@ Each event is one line:
 ```text
 data: {"type":"token","content":"Hel"}
 
-data: {"type":"done","content":"Hello, Sir. ...","intent":"casual","emotion":"neutral"}
+data: {"type":"done","content":"Hello, Friend. ...","intent":"casual","emotion":"neutral"}
 ```
 
 | Event `type` | Fields | Meaning |
@@ -560,7 +560,7 @@ Requires `OPENAI_API_KEY` and `VOICE_ENABLED=true`.
 
 ```json
 {
-  "text": "Good evening, Sir."
+  "text": "Good evening, Friend."
 }
 ```
 
@@ -650,7 +650,7 @@ Job statuses: `pending`, `processing`, `completed`, `pending_retry`, `failed_per
 | Layer | Behavior |
 |-------|----------|
 | **Database** | Per-user isolation via `user_id` on all memory tables. Conversations, episodes, learned preferences, and extraction jobs persist across restarts. |
-| **In-memory** | One `JarvisState` (conversation context + engines) per authenticated user in `state_store`. Server restart clears in-memory history but keeps SQLite data. |
+| **In-memory** | One `NovaState` (conversation context + engines) per authenticated user in `state_store`. Server restart clears in-memory history but keeps SQLite data. |
 | **Background worker** | Memory extraction worker starts on API startup. After each user message, jobs may be enqueued to extract learned preferences asynchronously. |
 
 Preference or learned-preference changes that affect personality clear the in-memory cache so the next turn picks up new settings.

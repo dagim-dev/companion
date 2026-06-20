@@ -9,7 +9,7 @@ from personality_composer import (
 
 
 class PersonalityComposerTests(unittest.TestCase):
-    def test_baseline_only_composition_keeps_jarvis_identity_and_sliders(self):
+    def test_baseline_only_composition_keeps_nova_identity_and_sliders(self):
         prefs = SimpleNamespace(
             sliders=SliderPrefs(directness=0.8, warmth=0.5, verbosity=0.35),
             baseline_directives={"examples_frequency": "when_useful"},
@@ -21,7 +21,7 @@ class PersonalityComposerTests(unittest.TestCase):
             runtime_modifiers=[],
         )
 
-        self.assertEqual(effective.identity, "jarvis")
+        self.assertEqual(effective.identity, "nova")
         self.assertEqual(effective.final_sliders["directness"], 0.8)
         self.assertEqual(effective.final_sliders["verbosity"], 0.35)
         self.assertIn("examples_frequency=when_useful", effective.directives)

@@ -109,20 +109,20 @@ export function SettingsPanel({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-jarvis-border bg-jarvis-panel p-6">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-xl border border-nova-border bg-nova-panel p-6">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-100">Companion settings</h2>
           <button
             type="button"
             onClick={onClose}
-            className="text-sm text-jarvis-muted hover:text-slate-200"
+            className="text-sm text-nova-muted hover:text-slate-200"
           >
             Close
           </button>
         </div>
 
-        <div className="mt-4 border-b border-jarvis-border pb-4">
-          <p className="text-xs text-jarvis-muted">
+        <div className="mt-4 border-b border-nova-border pb-4">
+          <p className="text-xs text-nova-muted">
             Current: {addressAs ? addressAs : "Not set"}
           </p>
           <NicknamePicker
@@ -131,14 +131,14 @@ export function SettingsPanel({
             error={null}
             submitLabel="Update address"
             title="Address me as"
-            subtitle="Used in greetings and when Jarvis speaks to you."
+            subtitle="Used in greetings and when NOVA speaks to you."
           />
         </div>
 
         {prefs ? (
           <form onSubmit={handleSave} className="mt-4 space-y-4">
             <div>
-              <p className="text-sm text-jarvis-muted">Communication</p>
+              <p className="text-sm text-nova-muted">Communication</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["direct", "balanced", "gentle"] as const).map((c) => (
                   <button
@@ -147,8 +147,8 @@ export function SettingsPanel({
                     onClick={() => setCommunication(c)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       communication === c
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {c}
@@ -157,7 +157,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Energy</p>
+              <p className="text-sm text-nova-muted">Energy</p>
               <div className="mt-2 flex gap-2">
                 {(["calm", "upbeat"] as const).map((e) => (
                   <button
@@ -166,8 +166,8 @@ export function SettingsPanel({
                     onClick={() => setEnergy(e)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       energy === e
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {e}
@@ -176,7 +176,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Challenge</p>
+              <p className="text-sm text-nova-muted">Challenge</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["low", "medium", "high"] as const).map((level) => (
                   <button
@@ -185,8 +185,8 @@ export function SettingsPanel({
                     onClick={() => setChallengeLevel(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       challengeLevel === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -195,7 +195,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Emotional support</p>
+              <p className="text-sm text-nova-muted">Emotional support</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["low", "medium", "high"] as const).map((level) => (
                   <button
@@ -204,8 +204,8 @@ export function SettingsPanel({
                     onClick={() => setEmotionalSupport(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       emotionalSupport === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -214,7 +214,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Detail</p>
+              <p className="text-sm text-nova-muted">Detail</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["concise", "normal", "detailed"] as const).map((level) => (
                   <button
@@ -223,8 +223,8 @@ export function SettingsPanel({
                     onClick={() => setDetailLevel(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       detailLevel === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -233,7 +233,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Examples</p>
+              <p className="text-sm text-nova-muted">Examples</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {([
                   ["few", "Few"],
@@ -246,8 +246,8 @@ export function SettingsPanel({
                     onClick={() => setExamplesPreference(value)}
                     className={`rounded-full px-3 py-1 text-xs ${
                       examplesPreference === value
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {label}
@@ -256,7 +256,7 @@ export function SettingsPanel({
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Accountability</p>
+              <p className="text-sm text-nova-muted">Accountability</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["light", "steady", "firm"] as const).map((style) => (
                 <button
@@ -265,8 +265,8 @@ export function SettingsPanel({
                   onClick={() => setAccountabilityStyle(style)}
                   className={`rounded-full px-3 py-1 text-xs capitalize ${
                     accountabilityStyle === style
-                      ? "bg-jarvis-accent text-slate-900"
-                      : "border border-jarvis-border text-jarvis-muted"
+                      ? "bg-nova-accent text-slate-900"
+                      : "border border-nova-border text-nova-muted"
                   }`}
                 >
                   {style}
@@ -279,13 +279,13 @@ export function SettingsPanel({
               onChange={(ev) => setCustomNotes(ev.target.value)}
               maxLength={300}
               rows={2}
-              className="w-full rounded-lg border border-jarvis-border bg-jarvis-bg px-3 py-2 text-sm text-slate-100"
+              className="w-full rounded-lg border border-nova-border bg-nova-bg px-3 py-2 text-sm text-slate-100"
               placeholder="Custom notes"
             />
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+              className="w-full rounded-lg bg-nova-accent py-2 text-sm font-medium text-slate-900"
             >
               {loading ? "Saving…" : "Save companion style"}
             </button>
@@ -293,13 +293,13 @@ export function SettingsPanel({
               type="button"
               onClick={handleResetLearned}
               disabled={resetting}
-              className="w-full rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
+              className="w-full rounded-lg border border-nova-border py-2 text-sm text-nova-muted"
             >
               {resetting ? "Resetting…" : "Reset learned style"}
             </button>
           </form>
         ) : (
-          <p className="mt-4 text-sm text-jarvis-muted">Loading…</p>
+          <p className="mt-4 text-sm text-nova-muted">Loading…</p>
         )}
 
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}

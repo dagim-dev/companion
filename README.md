@@ -1,12 +1,12 @@
-# JARVIS Companion
+# NOVA Companion
 
-A locally run, JARVIS-style AI companion with long-term memory, a cognition pipeline, adaptive personality, and optional voice. Built for developers and power users who want a personal assistant they control — not a hosted SaaS.
+A locally run, NOVA-style AI companion with long-term memory, a cognition pipeline, adaptive personality, and optional voice. Built for developers and power users who want a personal assistant they control — not a hosted SaaS.
 
 **Stack:** Python 3.11 (FastAPI + flat domain modules) · SQLite · Next.js 15 frontend · OpenAI · ElevenLabs (optional)
 
 ## What it does
 
-- Conversational AI with Jarvis-style personality, customized via onboarding sliders, learned preferences, and per-turn runtime adaptation
+- Conversational AI with NOVA-style personality, customized via onboarding sliders, learned preferences, and per-turn runtime adaptation
 - Long-term memory: personal facts, emotional history, reflections, episodic summaries, learned preferences
 - Cognition pipeline: intent/emotion classification, rules-first cognition with optional mini-LLM reasoning, behavior and rhythm control
 - Async memory extraction: background worker learns insights from messages after each turn
@@ -95,7 +95,7 @@ export TOKEN="<access_token from register response>"
 curl -s -X POST http://localhost:8000/v1/onboarding/complete \
   -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"communication":"direct","energy":"calm","challenge_level":"medium","detail_level":"normal","address_as":"Sir","display_name":"You"}'
+  -d '{"communication":"direct","energy":"calm","challenge_level":"medium","detail_level":"normal","address_as":"Friend","display_name":"You"}'
 
 # Chat
 curl -s -X POST http://localhost:8000/v1/chat \
@@ -151,7 +151,7 @@ Personality is composed at runtime from three layers (see `personality_composer.
 2. **Learned preferences** — style modifiers inferred asynchronously from conversation by the memory extraction worker
 3. **Runtime modifiers** — short-lived adjustments per turn (e.g. stress → grounding) from the cognition pipeline
 
-The API still accepts `role_id` for backward compatibility, but only `general_jarvis` is used; the six fixed YAML role templates were removed in favor of this composable model.
+The API still accepts `role_id` for backward compatibility, but only `general_nova` is used; the six fixed YAML role templates were removed in favor of this composable model.
 
 ## Further reading
 

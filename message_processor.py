@@ -46,7 +46,7 @@ from reflection_engine import (
 )
 from response_controller import control_response
 from rhythm_engine import apply_rhythm
-from session_state import JarvisState
+from session_state import NovaState
 from memory_decay import decay_memories
 from memory_consolidation import consolidate_memories
 
@@ -72,7 +72,7 @@ class PreparedTurn:
     effective_personality: Any = None
 
 
-def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
+def prepare_turn(state: NovaState, user_input: str) -> Optional[PreparedTurn]:
     """Run pre-LLM pipeline. Returns None if turn should be skipped (uncertain intent)."""
     decay_memories()
     consolidate_memories()
@@ -207,11 +207,16 @@ def prepare_turn(state: JarvisState, user_input: str) -> Optional[PreparedTurn]:
 
 
 def finalize_response(
-    state: JarvisState,
+    state: NovaState,
     turn: PreparedTurn,
     raw_response: str,
 ) -> str:
-    response = control_response(raw_response, turn.behavior, turn.intent)
+    response = control_response(
+        raw_response,
+        turn.behavior,
+        turn.intent,
+        address_as=(turn.profile or {}).get("address_as"),
+    )
     response = apply_rhythm(response, turn.intent, turn.intensity)
 
     state.meta_cognition.evaluate_interaction(
@@ -254,7 +259,7 @@ def finalize_response(
 RUNTIME_PERSIST_EVERY_N_TURNS = FREE_PERSIST_INTERVAL_TURNS
 
 
-def _persistence_clock(state: JarvisState) -> PersistenceCycleClock:
+def _persistence_clock(state: NovaState) -> PersistenceCycleClock:
     interval = get_persist_interval_turns(state.user_id)
     return PersistenceCycleClock(
         interval_turns=interval,
@@ -262,7 +267,7 @@ def _persistence_clock(state: JarvisState) -> PersistenceCycleClock:
     )
 
 
-def _maybe_persist_runtime(state: JarvisState) -> None:
+def _maybe_persist_runtime(state: NovaState) -> None:
     clock = _persistence_clock(state)
     log_persistence_status(state.user_id, state.turn_count, clock)
 
@@ -279,7 +284,7 @@ def _maybe_persist_runtime(state: JarvisState) -> None:
     _ = cycle_timestamp()
 
 
-def _maybe_create_episode(state: JarvisState, turn: PreparedTurn) -> None:
+def _maybe_create_episode(state: NovaState, turn: PreparedTurn) -> None:
     if len(state.conversation) % 12 != 0:
         return
     episode_summary = summarize_recent(state.conversation)
@@ -297,7 +302,7 @@ def _maybe_create_episode(state: JarvisState, turn: PreparedTurn) -> None:
     )
 
 
-def _llm_kwargs(state: JarvisState, turn: PreparedTurn) -> dict[str, Any]:
+def _llm_kwargs(state: NovaState, turn: PreparedTurn) -> dict[str, Any]:
     return {
         "conversation": state.conversation,
         "profile": turn.profile,
@@ -320,7 +325,7 @@ def _llm_kwargs(state: JarvisState, turn: PreparedTurn) -> dict[str, Any]:
 
 
 def stream_llm_tokens(
-    state: JarvisState,
+    state: NovaState,
     turn: PreparedTurn,
     *,
     echo_to_terminal: bool = False,
@@ -329,7 +334,7 @@ def stream_llm_tokens(
 
 
 def process_message(
-    state: JarvisState,
+    state: NovaState,
     user_input: str,
     *,
     echo_to_terminal: bool = True,

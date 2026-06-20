@@ -6,7 +6,7 @@ from typing import Any
 
 from companion_prefs import CompanionPreferences, MAX_CUSTOM_NOTES_LEN
 from personality_composer import EffectivePersonality
-from prompts.core import JARVIS_CORE
+from prompts.core import NOVA_CORE
 
 def _slider_instructions(sliders: dict[str, float]) -> str:
     support = sliders.get("emotional_support_level", sliders.get("emotional_support", 0.5))
@@ -39,8 +39,8 @@ def _format_effective_personality(
 ) -> str:
     sliders = effective.final_sliders
     parts = [
-        JARVIS_CORE,
-        "JARVIS IDENTITY:\n- Jarvis remains one consistent assistant; never imply a companion role switch.",
+        NOVA_CORE,
+        "NOVA IDENTITY:\n- NOVA remains one consistent assistant; never imply a companion role switch.",
         "USER BASELINE STYLE:\n"
         f"- Directness: {sliders.get('directness', 0.6):.2f}\n"
         f"- Warmth: {sliders.get('warmth', 0.55):.2f}\n"
@@ -86,7 +86,7 @@ def _format_effective_personality(
     parts.append(
         "STYLE BOUNDARIES:\n"
         "- Do not mention modes, layers, scores, or internal adaptation unless asked.\n"
-        "- Adapt delivery without changing who Jarvis is."
+        "- Adapt delivery without changing who NOVA is."
     )
     return "\n\n".join(p for p in parts if p)
 
@@ -115,16 +115,16 @@ def build_personality_layer(
 
     if prefs is None:
         parts = [
-            JARVIS_CORE,
-            "JARVIS IDENTITY:\n- Jarvis remains one consistent assistant; adapt delivery, not identity.",
+            NOVA_CORE,
+            "NOVA IDENTITY:\n- NOVA remains one consistent assistant; adapt delivery, not identity.",
         ]
         return "\n\n".join(p for p in parts if p)
 
     sliders = prefs.sliders.to_dict()
 
     parts = [
-        JARVIS_CORE,
-        "JARVIS IDENTITY:\n- Jarvis remains one consistent assistant; adapt delivery, not identity.",
+        NOVA_CORE,
+        "NOVA IDENTITY:\n- NOVA remains one consistent assistant; adapt delivery, not identity.",
     ]
 
     parts.append(_slider_instructions(sliders))

@@ -20,7 +20,7 @@ Several storage and architecture options were on the table:
 Add multi-user support with minimal disruption to existing domain code:
 
 1. **JWT auth** — `auth_jwt.py` + `auth_store.py`; register/login endpoints; Bearer token on protected routes.
-2. **Per-user session** — `state_store.py` caches one `JarvisState` per `user_id` (in-memory, 1-hour TTL).
+2. **Per-user session** — `state_store.py` caches one `NovaState` per `user_id` (in-memory, 1-hour TTL).
 3. **SQLite scoping** — Add `user_id` column to all data tables; use `memory_scope.user_scope()` ContextVar so domain helpers (`get_profile()`, etc.) need no signature changes.
 4. **API restructure** — Move from monolithic `api.py` to `api/` package with `/v1/*` routers; keep `api.py` as a uvicorn shim.
 5. **Personality** — YAML role templates in `prompts/roles/`, slider preferences, `prompt_builder.py` (six roles).
@@ -46,7 +46,7 @@ Add multi-user support with minimal disruption to existing domain code:
 **Negative:**
 
 - ContextVar must be set in every route handler and worker thread — forgetting it causes cross-user data leaks or errors.
-- In-memory `JarvisState` does not survive restarts or work across multiple Uvicorn workers without sticky sessions or external state.
+- In-memory `NovaState` does not survive restarts or work across multiple Uvicorn workers without sticky sessions or external state.
 - SQLite write contention under concurrent threads (mitigated by per-call connections, WAL mode, 30s busy timeout).
 
 ## References

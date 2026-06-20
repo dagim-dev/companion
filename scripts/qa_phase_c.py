@@ -65,7 +65,7 @@ def main():
         token = register_onboard(
             client,
             f"qa-c-alice-{uuid.uuid4().hex[:6]}@example.com",
-            "Sir",
+            "Friend",
             "gentle",
         )
         h = {"Authorization": f"Bearer {token}"}
@@ -123,7 +123,7 @@ def main():
             timeout=120,
         )
         resp_text = (r54.json().get("response") or "").lower() if r54.status_code == 200 else ""
-        mentions = any(x in resp_text for x in ("chief", "sir", "boss", "call"))
+        mentions = any(x in resp_text for x in ("friend", "boss", "call"))
         record(
             "5.4",
             "Address in reply",
@@ -135,7 +135,7 @@ def main():
         # 6.1-6.4 two users
         alice_email = f"qa-alice-{uuid.uuid4().hex[:6]}@example.com"
         bob_email = f"qa-bob-{uuid.uuid4().hex[:6]}@example.com"
-        alice_t = register_onboard(client, alice_email, "Sir", "gentle")
+        alice_t = register_onboard(client, alice_email, "Friend", "gentle")
         bob_t = register_onboard(client, bob_email, "Boss", "direct")
         ha = {"Authorization": f"Bearer {alice_t}"}
         hb = {"Authorization": f"Bearer {bob_t}"}
@@ -172,8 +172,8 @@ def main():
 
         pa = client.get(f"{BASE}/v1/profile", headers=ha).json()
         pb = client.get(f"{BASE}/v1/profile", headers=hb).json()
-        ok63 = pa.get("address_as") == "Sir" and pb.get("address_as") == "Boss"
-        record("6.3", "Profile isolation", "pass" if ok63 else "fail", "Sir vs Boss", f"{pa} | {pb}")
+        ok63 = pa.get("address_as") == "Friend" and pb.get("address_as") == "Boss"
+        record("6.3", "Profile isolation", "pass" if ok63 else "fail", "Friend vs Boss", f"{pa} | {pb}")
 
         pra = client.get(f"{BASE}/v1/preferences", headers=ha).json()
         prb = client.get(f"{BASE}/v1/preferences", headers=hb).json()

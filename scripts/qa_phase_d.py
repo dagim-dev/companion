@@ -22,6 +22,7 @@ def record(results, test_id, name, status, expected, actual, notes=""):
 def register_onboard(
     client,
     *,
+    role_id: str = "general_nova",
     communication: str = "balanced",
     challenge_level: str = "medium",
     emotional_support: str = "medium",
@@ -39,6 +40,7 @@ def register_onboard(
         f"{BASE}/v1/onboarding/complete",
         headers=h,
         json={
+            "role_id": role_id,
             "communication": communication,
             "energy": "calm",
             "challenge_level": challenge_level,
@@ -55,15 +57,15 @@ def main():
     R = []
 
     # 7.3 inspect core prompt
-    from prompts.core import JARVIS_CORE
-    bad = ["Dagi", "Good evening, Sir"]
-    found = [b for b in bad if b in JARVIS_CORE]
+    from prompts.core import NOVA_CORE
+    bad = ["Dagi", "Good evening, Friend"]
+    found = [b for b in bad if b in NOVA_CORE]
     record(
         R,
         "7.3",
         "No global name in core",
         "pass" if not found else "fail",
-        "no hardcoded Dagi/Sir greeting",
+        "no hardcoded Dagi greeting",
         f"found={found}",
     )
 
@@ -87,7 +89,7 @@ def main():
         record(
             R,
             "7.1",
-            "Jarvis baseline style",
+            "NOVA baseline style",
             "pass" if operational else "warn",
             "operational tone",
             text71[:150],
@@ -191,8 +193,8 @@ def main():
         )
 
         # 8.3 cross-user
-        alice_t, alice_uid = register_onboard(client, "general_jarvis")
-        bob_t, bob_uid = register_onboard(client, "general_jarvis")
+        alice_t, alice_uid = register_onboard(client, role_id="general_nova")
+        bob_t, bob_uid = register_onboard(client, role_id="general_nova")
         ha = {"Authorization": f"Bearer {alice_t}"}
         hb = {"Authorization": f"Bearer {bob_t}"}
         client.post(

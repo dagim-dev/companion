@@ -1,6 +1,6 @@
 # Architecture
 
-JARVIS Companion is a locally run AI assistant with long-term memory, a cognition pipeline, and optional voice. Three entry points share one turn pipeline: terminal CLI (`main.py`), HTTP API (`uvicorn api:app`), and Next.js web UI (`frontend/`).
+NOVA Companion is a locally run AI assistant with long-term memory, a cognition pipeline, and optional voice. Three entry points share one turn pipeline: terminal CLI (`main.py`), HTTP API (`uvicorn api:app`), and Next.js web UI (`frontend/`).
 
 ## System map
 
@@ -21,7 +21,7 @@ flowchart TB
     end
     subgraph persist [Storage]
         SQLite[(memory.db)]
-        StateStore[in-memory JarvisState]
+        StateStore[in-memory NovaState]
     end
     subgraph external [External]
         OpenAI[OpenAI API]
@@ -75,7 +75,7 @@ Bearer token → api/deps.py → user_id → user_scope(user_id) → domain code
 
 `memory_scope.py` sets a `ContextVar` for the current user. Legacy helpers like `get_profile()` read the scoped `user_id` internally. Routes and worker threads must enter `user_scope` before any DB access.
 
-Each authenticated user gets a cached `JarvisState` in `state_store.py` (1-hour TTL, thread-locked dict). State holds in-memory conversation history, personality engines, and turn counters. SQLite stores durable data: profiles, memories, conversations, preferences, extraction jobs.
+Each authenticated user gets a cached `NovaState` in `state_store.py` (1-hour TTL, thread-locked dict). State holds in-memory conversation history, personality engines, and turn counters. SQLite stores durable data: profiles, memories, conversations, preferences, extraction jobs.
 
 See [decisions/0001-multi-user-sqlite-and-jwt.md](decisions/0001-multi-user-sqlite-and-jwt.md) for why SQLite + ContextVar was chosen over a full rewrite or vector DB.
 
@@ -87,7 +87,7 @@ Authentication is split across three concerns:
 |--------|------|
 | `auth_jwt.py` | JWT encode/decode (HS256, configurable expiry). No DB dependency. |
 | `auth_store.py` | User CRUD in SQLite (`users` table), bcrypt password hashing. |
-| `api/deps.py` | FastAPI `HTTPBearer` → decode token → validate user → inject `user_id` and `JarvisState`. |
+| `api/deps.py` | FastAPI `HTTPBearer` → decode token → validate user → inject `user_id` and `NovaState`. |
 | `api/routers/auth.py` | HTTP endpoints: register, login, `/me`. |
 
 Crypto stays separate from persistence so JWT logic can be tested without a database. HTTP security primitives stay in `api/` and never leak into domain modules.
@@ -139,7 +139,7 @@ Optional BFF route at `frontend/src/app/v1/chat/stream/route.ts` can proxy SSE v
 These are intentional limits of the current design, not bugs to fix immediately:
 
 - **Single SQLite file** — No vector DB, no horizontal scaling, no cloud sync.
-- **In-memory sessions** — Conversation history in `JarvisState` is lost on API restart; frontend React state is lost on browser refresh.
+- **In-memory sessions** — Conversation history in `NovaState` is lost on API restart; frontend React state is lost on browser refresh.
 - **`thread_id` is a no-op** — Accepted in API but not used; no persisted multi-thread chat yet.
 - **CLI uses a fixed user** — `main.py` runs as `CLI_USER_ID` (default `local-dev`), not a registered account.
 - **Voice gated by env** — Requires `VOICE_ENABLED=true` plus OpenAI and ElevenLabs keys; `/health` reports availability.

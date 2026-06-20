@@ -42,25 +42,25 @@ function ChatApp() {
 
   return (
     <main className="flex h-dvh flex-col">
-      <header className="border-b border-jarvis-border bg-jarvis-panel/60 px-4 py-4 backdrop-blur">
+      <header className="border-b border-nova-border bg-nova-panel/60 px-4 py-4 backdrop-blur">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-slate-100">
-              J.A.R.V.I.S.
+              NOVA
             </h1>
-            <p className="text-xs text-jarvis-muted">
-              Just A Rather Very Intelligent System
+            <p className="text-xs text-nova-muted">
+              NOVA: The Birth Of a New Star
             </p>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setSettingsOpen(true)}
-              className="rounded-full border border-jarvis-border px-3 py-1 text-xs text-jarvis-muted hover:text-slate-200"
+              className="rounded-full border border-nova-border px-3 py-1 text-xs text-nova-muted hover:text-slate-200"
             >
               Settings
             </button>
-            <span className="rounded-full border border-jarvis-border px-3 py-1 text-xs text-jarvis-muted">
+            <span className="rounded-full border border-nova-border px-3 py-1 text-xs text-nova-muted">
               {isStreaming ? "Online" : "Ready"}
             </span>
           </div>

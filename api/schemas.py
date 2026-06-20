@@ -77,7 +77,7 @@ class ProfileUpdateRequest(BaseModel):
 
 
 class OnboardingCompleteRequest(BaseModel):
-    role_id: str = "general_jarvis"
+    role_id: str = "general_nova"
     communication: Literal["direct", "balanced", "gentle"] = "balanced"
     energy: Literal["calm", "upbeat"] = "calm"
     challenge_level: Literal["low", "medium", "high"] = "medium"

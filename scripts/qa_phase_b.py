@@ -7,7 +7,7 @@ import uuid
 import httpx
 
 BASE = "http://127.0.0.1:8000"
-VALID_ROLES = {"general_jarvis"}
+VALID_ROLES = {"general_nova"}
 RESULTS = []
 
 
@@ -52,7 +52,7 @@ def main():
         roles = r2.json() if r2.status_code == 200 else []
         ids = {x["id"] for x in roles} if isinstance(roles, list) else set()
         ok2 = r2.status_code == 200 and ids == VALID_ROLES
-        record("3.2", "Role catalog", "pass" if ok2 else "fail", f"Jarvis-only {VALID_ROLES}", f"status={r2.status_code} ids={ids}")
+        record("3.2", "Role catalog", "pass" if ok2 else "fail", f"NOVA-only {VALID_ROLES}", f"status={r2.status_code} ids={ids}")
 
         # 3.4 invalid role (before complete)
         r4 = client.post(
@@ -62,7 +62,7 @@ def main():
                 "role_id": "invalid",
                 "communication": "balanced",
                 "energy": "calm",
-                "address_as": "Sir",
+                "address_as": "Friend",
             },
             timeout=10,
         )
@@ -74,10 +74,10 @@ def main():
             f"{BASE}/v1/onboarding/complete",
             headers=h,
             json={
-                "role_id": "general_jarvis",
+                "role_id": "general_nova",
                 "communication": "harsh",
                 "energy": "calm",
-                "address_as": "Sir",
+                "address_as": "Friend",
             },
             timeout=10,
         )
@@ -104,8 +104,8 @@ def main():
         # 3.6 GET preferences
         r6 = client.get(f"{BASE}/v1/preferences", headers=h, timeout=10)
         p6 = r6.json() if r6.status_code == 200 else {}
-        ok6 = r6.status_code == 200 and p6.get("role_id") == "general_jarvis"
-        record("3.6", "GET preferences", "pass" if ok6 else "fail", "general_jarvis", json.dumps(p6)[:200])
+        ok6 = r6.status_code == 200 and p6.get("role_id") == "general_nova"
+        record("3.6", "GET preferences", "pass" if ok6 else "fail", "general_nova", json.dumps(p6)[:200])
 
         # 3.7 PUT preferences
         r7 = client.put(

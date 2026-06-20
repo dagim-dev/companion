@@ -55,18 +55,18 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   return (
     <main className="flex h-dvh flex-col items-center justify-center px-4">
-      <div className="w-full max-w-lg rounded-xl border border-jarvis-border bg-jarvis-panel/80 p-6">
+      <div className="w-full max-w-lg rounded-xl border border-nova-border bg-nova-panel/80 p-6">
         <h1 className="text-lg font-semibold text-slate-100">
-          Configure J.A.R.V.I.S.
+          Configure NOVA
         </h1>
-        <p className="mt-1 text-sm text-jarvis-muted">
-          Step {step} of 4 — personalize how Jarvis communicates
+        <p className="mt-1 text-sm text-nova-muted">
+          Step {step} of 4 — personalize how NOVA communicates
         </p>
 
         {step === 1 && (
           <div className="mt-6 space-y-4">
             <div>
-              <p className="text-sm text-jarvis-muted">Communication</p>
+              <p className="text-sm text-nova-muted">Communication</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["direct", "balanced", "gentle"] as const).map((c) => (
                   <button
@@ -75,8 +75,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setCommunication(c)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       communication === c
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {c}
@@ -85,7 +85,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Energy</p>
+              <p className="text-sm text-nova-muted">Energy</p>
               <div className="mt-2 flex gap-2">
                 {(["calm", "upbeat"] as const).map((e) => (
                   <button
@@ -94,8 +94,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setEnergy(e)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       energy === e
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {e}
@@ -107,7 +107,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="w-full rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+                className="w-full rounded-lg bg-nova-accent py-2 text-sm font-medium text-slate-900"
               >
                 Continue
               </button>
@@ -118,7 +118,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 2 && (
           <div className="mt-6 space-y-4">
             <div>
-              <p className="text-sm text-jarvis-muted">Challenge level</p>
+              <p className="text-sm text-nova-muted">Challenge level</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["low", "medium", "high"] as const).map((level) => (
                   <button
@@ -127,8 +127,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setChallengeLevel(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       challengeLevel === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -137,7 +137,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Emotional support</p>
+              <p className="text-sm text-nova-muted">Emotional support</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["low", "medium", "high"] as const).map((level) => (
                   <button
@@ -146,8 +146,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setEmotionalSupport(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       emotionalSupport === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -159,14 +159,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
+                className="flex-1 rounded-lg border border-nova-border py-2 text-sm text-nova-muted"
               >
                 Back
               </button>
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="flex-1 rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+                className="flex-1 rounded-lg bg-nova-accent py-2 text-sm font-medium text-slate-900"
               >
                 Continue
               </button>
@@ -177,7 +177,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         {step === 3 && (
           <div className="mt-6 space-y-4">
             <div>
-              <p className="text-sm text-jarvis-muted">Detail level</p>
+              <p className="text-sm text-nova-muted">Detail level</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["concise", "normal", "detailed"] as const).map((level) => (
                   <button
@@ -186,8 +186,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setDetailLevel(level)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       detailLevel === level
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {level}
@@ -196,7 +196,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Examples</p>
+              <p className="text-sm text-nova-muted">Examples</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {([
                   ["few", "Few"],
@@ -209,8 +209,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setExamplesPreference(value)}
                     className={`rounded-full px-3 py-1 text-xs ${
                       examplesPreference === value
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {label}
@@ -219,7 +219,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               </div>
             </div>
             <div>
-              <p className="text-sm text-jarvis-muted">Accountability</p>
+              <p className="text-sm text-nova-muted">Accountability</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {(["light", "steady", "firm"] as const).map((style) => (
                   <button
@@ -228,8 +228,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                     onClick={() => setAccountabilityStyle(style)}
                     className={`rounded-full px-3 py-1 text-xs capitalize ${
                       accountabilityStyle === style
-                        ? "bg-jarvis-accent text-slate-900"
-                        : "border border-jarvis-border text-jarvis-muted"
+                        ? "bg-nova-accent text-slate-900"
+                        : "border border-nova-border text-nova-muted"
                     }`}
                   >
                     {style}
@@ -241,14 +241,14 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <button
                 type="button"
                 onClick={() => setStep(2)}
-                className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
+                className="flex-1 rounded-lg border border-nova-border py-2 text-sm text-nova-muted"
               >
                 Back
               </button>
               <button
                 type="button"
                 onClick={() => setStep(4)}
-                className="flex-1 rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900"
+                className="flex-1 rounded-lg bg-nova-accent py-2 text-sm font-medium text-slate-900"
               >
                 Continue
               </button>
@@ -263,21 +263,21 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 setAddressAs(value);
               }}
               submitLabel="Next"
-              subtitle="This is how Jarvis will greet you in chat."
+              subtitle="This is how NOVA will greet you in chat."
             />
             {addressAs && (
-              <p className="text-center text-xs text-jarvis-muted">
+              <p className="text-center text-xs text-nova-muted">
                 Addressing you as: <span className="text-slate-200">{addressAs}</span>
               </p>
             )}
-            <label className="block text-sm text-jarvis-muted">
+            <label className="block text-sm text-nova-muted">
               Anything else? (optional)
               <textarea
                 value={customNotes}
                 onChange={(e) => setCustomNotes(e.target.value)}
                 maxLength={300}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-jarvis-border bg-jarvis-bg px-3 py-2 text-slate-100"
+                className="mt-1 w-full rounded-lg border border-nova-border bg-nova-bg px-3 py-2 text-slate-100"
                 placeholder="e.g. Prefer blunt feedback on workouts"
               />
             </label>
@@ -285,7 +285,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
               <button
                 type="button"
                 onClick={() => setStep(3)}
-                className="flex-1 rounded-lg border border-jarvis-border py-2 text-sm text-jarvis-muted"
+                className="flex-1 rounded-lg border border-nova-border py-2 text-sm text-nova-muted"
               >
                 Back
               </button>
@@ -293,7 +293,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
                 type="button"
                 onClick={handleFinish}
                 disabled={loading || !addressAs}
-                className="flex-1 rounded-lg bg-jarvis-accent py-2 text-sm font-medium text-slate-900 disabled:opacity-50"
+                className="flex-1 rounded-lg bg-nova-accent py-2 text-sm font-medium text-slate-900 disabled:opacity-50"
               >
                 {loading ? "Saving…" : "Start chatting"}
               </button>

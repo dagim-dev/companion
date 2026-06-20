@@ -72,7 +72,7 @@ def decide_behavior(
     elif companion_prefs is not None:
         support_level = companion_prefs.sliders.emotional_support_level
 
-    # --- Default Jarvis behavior ---
+    # --- Default NOVA behavior ---
     behavior = {
         "tone": "composed",
         "verbosity": "medium",

@@ -181,7 +181,7 @@ def compose_effective_personality(
         audit_reasons.append(f"runtime:{modifier.key}:{modifier.reason}")
 
     return EffectivePersonality(
-        identity="jarvis",
+        identity="nova",
         baseline_sliders=baseline,
         learned_modifiers=learned_modifiers,
         runtime_modifiers=list(runtime_modifiers or []),

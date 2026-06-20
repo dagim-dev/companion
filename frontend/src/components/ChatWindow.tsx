@@ -51,7 +51,7 @@ export function ChatWindow({
         {showEmpty && (
           <div className="animate-fade-in py-8 text-center">
             <h2 className="text-lg font-medium text-slate-200">
-              J.A.R.V.I.S.
+              NOVA
             </h2>
             {profileLoaded && !addressAs && (
               <div className="mx-auto mt-6 max-w-sm text-left">
@@ -60,17 +60,17 @@ export function ChatWindow({
                   loading={pickerLoading}
                   error={pickerError}
                   submitLabel="Save"
-                  subtitle="Choose a title or enter how you'd like to be addressed."
+                  subtitle="Enter how you'd like to be addressed."
                 />
               </div>
             )}
             {profileLoaded && addressAs && (
-              <p className="mt-2 text-sm text-jarvis-muted">
+              <p className="mt-2 text-sm text-nova-muted">
                 {buildEmptyStateGreeting(addressAs)}
               </p>
             )}
             {!profileLoaded && (
-              <p className="mt-2 text-sm text-jarvis-muted">Loading…</p>
+              <p className="mt-2 text-sm text-nova-muted">Loading…</p>
             )}
           </div>
         )}

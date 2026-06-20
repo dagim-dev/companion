@@ -30,10 +30,10 @@ def onboard_token(client: httpx.Client) -> str:
         f"{BASE}/v1/onboarding/complete",
         headers=h,
         json={
-            "role_id": "general_jarvis",
+            "role_id": "general_nova",
             "communication": "balanced",
             "energy": "calm",
-            "address_as": "Sir",
+            "address_as": "Friend",
         },
         timeout=10,
     )

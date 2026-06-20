@@ -38,7 +38,7 @@ MIN_RELATIONSHIP_DEPTH = 0.35
 MIN_FOLLOWUP_INTERVAL_HOURS = 24
 
 # Gate 4: probability that an otherwise-eligible turn produces a follow-up.
-# Tuned so Jarvis brings memories up in roughly 5-10% of eligible conversations.
+# Tuned so NOVA brings memories up in roughly 5-10% of eligible conversations.
 FOLLOWUP_PROBABILITY = 0.08
 # When the best candidate is only weakly related to the current topic we still
 # allow the occasional spontaneous check-in, but far more rarely.

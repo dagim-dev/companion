@@ -23,7 +23,7 @@ class PreferencesApiV2ContractTests(unittest.TestCase):
             address_as="Dagi",
         )
 
-        self.assertEqual(body.role_id, "general_jarvis")
+        self.assertEqual(body.role_id, "general_nova")
         self.assertEqual(body.challenge_level, "high")
         self.assertEqual(body.examples_preference, "often")
 
@@ -48,7 +48,7 @@ class PreferencesApiV2ContractTests(unittest.TestCase):
     def test_preferences_response_includes_v2_baseline_fields(self):
         prefs = CompanionPreferences(
             user_id="user-123",
-            role_id="general_jarvis",
+            role_id="general_nova",
             communication="direct",
             energy="upbeat",
             challenge_level="high",
@@ -64,7 +64,7 @@ class PreferencesApiV2ContractTests(unittest.TestCase):
         response = onboarding_response(prefs)
         also_response = preferences_response(prefs)
 
-        self.assertEqual(response.role_id, "general_jarvis")
+        self.assertEqual(response.role_id, "general_nova")
         self.assertEqual(response.challenge_level, "high")
         self.assertEqual(response.baseline_directives["examples_frequency"], "often")
         self.assertEqual(also_response.detail_level, "concise")

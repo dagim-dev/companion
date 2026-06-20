@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        jarvis: {
+        nova: {
           bg: "#0a0e14",
           panel: "#121820",
           border: "#1e2a3a",

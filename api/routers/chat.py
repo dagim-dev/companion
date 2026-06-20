@@ -17,7 +17,7 @@ from message_processor import (
     process_message,
     stream_llm_tokens,
 )
-from session_state import JarvisState
+from session_state import NovaState
 
 router = APIRouter(prefix="/v1", tags=["chat"])
 
@@ -62,7 +62,7 @@ def _next_llm_token_scoped(
 
 
 async def _stream_llm_tokens_threaded(
-    state: JarvisState,
+    state: NovaState,
     turn: PreparedTurn,
 ) -> AsyncIterator[str]:
     tokens = stream_llm_tokens(state, turn, echo_to_terminal=False)
@@ -78,13 +78,13 @@ async def _stream_llm_tokens_threaded(
         yield cast(str, item)
 
 
-async def _chat_stream_events(state: JarvisState, message: str) -> AsyncIterator[str]:
+async def _chat_stream_events(state: NovaState, message: str) -> AsyncIterator[str]:
     async for event in _chat_stream_events_scoped(state, message):
         yield event
 
 
 async def _chat_stream_events_scoped(
-    state: JarvisState, message: str
+    state: NovaState, message: str
 ) -> AsyncIterator[str]:
     turn: PreparedTurn | None = await _to_thread_with_user_scope(
         state.user_id,
@@ -135,7 +135,7 @@ async def _chat_stream_events_scoped(
 @router.post("/chat", response_model=ChatResponse)
 def chat_endpoint(
     body: ChatRequest,
-    state: Annotated[JarvisState, Depends(get_state)],
+    state: Annotated[NovaState, Depends(get_state)],
 ) -> ChatResponse:
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="message is required")
@@ -160,7 +160,7 @@ def chat_endpoint(
 @router.post("/chat/stream")
 async def chat_stream_endpoint(
     body: ChatRequest,
-    state: Annotated[JarvisState, Depends(get_state)],
+    state: Annotated[NovaState, Depends(get_state)],
 ) -> StreamingResponse:
     if not body.message.strip():
         raise HTTPException(status_code=400, detail="message is required")

@@ -6,7 +6,7 @@ from companion_prefs import complete_onboarding, is_onboarding_complete
 from memory import init_db, set_profile
 from memory_scope import user_scope
 from message_processor import process_message
-from state_store import get_jarvis_state
+from state_store import get_nova_state
 
 DEFAULT_CLI_USER_ID = os.getenv("CLI_USER_ID", "local-dev")
 
@@ -21,15 +21,15 @@ def main():
 
         if not is_onboarding_complete(DEFAULT_CLI_USER_ID):
             complete_onboarding(
-                role_id="general_jarvis",
+                role_id="general_nova",
                 communication="direct",
                 energy="calm",
-                address_as="Sir",
+                address_as="Friend",
                 display_name="Dagi",
                 user_id=DEFAULT_CLI_USER_ID,
             )
 
-        state = get_jarvis_state(DEFAULT_CLI_USER_ID)
+        state = get_nova_state(DEFAULT_CLI_USER_ID)
 
         print("AI Companion started. Type 'exit' to quit.\n")
 

@@ -39,7 +39,7 @@ export function ChatInput({
   return (
     <form
       onSubmit={onSubmit}
-      className="border-t border-jarvis-border bg-jarvis-panel/80 p-4 backdrop-blur"
+      className="border-t border-nova-border bg-nova-panel/80 p-4 backdrop-blur"
     >
       <div className="mx-auto flex max-w-3xl items-end gap-3">
         <VoiceButton
@@ -54,13 +54,13 @@ export function ChatInput({
           onKeyDown={onKeyDown}
           disabled={disabled}
           rows={1}
-          placeholder="Message JARVIS…"
-          className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-jarvis-border bg-jarvis-bg px-4 py-3 text-sm text-slate-100 placeholder:text-jarvis-muted focus:border-jarvis-accent focus:outline-none disabled:opacity-50"
+          placeholder="Message NOVA…"
+          className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-nova-border bg-nova-bg px-4 py-3 text-sm text-slate-100 placeholder:text-nova-muted focus:border-nova-accent focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={disabled || !value.trim()}
-          className="rounded-xl bg-jarvis-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-jarvis-accent/90 disabled:opacity-40"
+          className="rounded-xl bg-nova-accent px-5 py-3 text-sm font-medium text-white transition hover:bg-nova-accent/90 disabled:opacity-40"
         >
           Send
         </button>

@@ -34,7 +34,7 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Deprecated
 
-- `role_id` on onboarding/preferences APIs — accepted for backward compatibility but always stored as `general_jarvis`; use sliders and learned preferences to shape personality
+- `role_id` on onboarding/preferences APIs — accepted for backward compatibility but always stored as `general_nova`; use sliders and learned preferences to shape personality
 
 ## [0.3.0] - 2026-06-12
 
@@ -113,7 +113,7 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Added
 
-- Initial JARVIS Companion V1
+- Initial NOVA Companion V1
 - Terminal CLI (`main.py`) and monolithic HTTP API
 - Turn pipeline: `message_processor.py` (prepare → LLM → finalize)
 - Cognitive engines: classifier, decision engine, reflection, curiosity, meta-cognition, rhythm

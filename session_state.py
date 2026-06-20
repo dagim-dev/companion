@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 @dataclass
-class JarvisState:
+class NovaState:
     user_id: str
     conversation: list[dict[str, str]] = field(default_factory=list)
     internal_state: InternalState = field(default_factory=InternalState)
@@ -31,5 +31,5 @@ class JarvisState:
     persistence_cycle_start_turn: int = 0
 
 
-def create_state(user_id: str) -> JarvisState:
-    return JarvisState(user_id=user_id)
+def create_state(user_id: str) -> NovaState:
+    return NovaState(user_id=user_id)

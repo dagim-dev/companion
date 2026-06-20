@@ -1,4 +1,4 @@
-# JARVIS response time benchmarks 
+# NOVA response time benchmarks 
 
 End-to-end turn time from `process_message` (`response_time_s` in API or `[RESPONSE TIME]` in terminal).
 
