@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 
 LEGACY_USER_ID = "legacy-local"
+LEGACY_PERSONAL_MEMORY_TABLE_PREFIX = "legacy_personal_memories_v3"
 
 
 def _table_has_column(cursor, table: str, column: str) -> bool:
@@ -24,6 +25,35 @@ def _drop_new_tables(cursor):
     )
     for (name,) in cursor.fetchall():
         cursor.execute(f"DROP TABLE IF EXISTS {name}")
+
+
+def _table_exists(cursor, table: str) -> bool:
+    cursor.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name = ?",
+        (table,),
+    )
+    return cursor.fetchone() is not None
+
+
+def _next_legacy_personal_memory_table(cursor) -> str:
+    cursor.execute(
+        """
+        SELECT name FROM sqlite_master
+        WHERE type='table' AND name LIKE ?
+        ORDER BY name
+        """,
+        (f"{LEGACY_PERSONAL_MEMORY_TABLE_PREFIX}%",),
+    )
+    existing = {row[0] for row in cursor.fetchall()}
+    if LEGACY_PERSONAL_MEMORY_TABLE_PREFIX not in existing:
+        return LEGACY_PERSONAL_MEMORY_TABLE_PREFIX
+
+    suffix = 2
+    while True:
+        candidate = f"{LEGACY_PERSONAL_MEMORY_TABLE_PREFIX}_{suffix}"
+        if candidate not in existing:
+            return candidate
+        suffix += 1
 
 
 def _migrate():
@@ -121,39 +151,11 @@ def _migrate():
         cursor.execute("DROP TABLE emotional_history")
         cursor.execute("ALTER TABLE emotional_history_new RENAME TO emotional_history")
 
-    # personal_memories (dedupe by category+key, keep latest id)
-    if not _table_has_column(cursor, "personal_memories", "user_id"):
-        cursor.execute("""
-        CREATE TABLE personal_memories_new (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT NOT NULL,
-            category TEXT,
-            key TEXT,
-            value TEXT,
-            embedding TEXT,
-            importance REAL DEFAULT 0.5,
-            created_at TEXT,
-            updated_at TEXT,
-            UNIQUE(user_id, category, key)
-        )
-        """)
-        cursor.execute(
-            """
-            INSERT INTO personal_memories_new
-            (id, user_id, category, key, value, embedding, importance, created_at, updated_at)
-            SELECT pm.id, ?, pm.category, pm.key, pm.value, pm.embedding,
-                   pm.importance, pm.created_at, pm.updated_at
-            FROM personal_memories pm
-            INNER JOIN (
-                SELECT category, key, MAX(id) AS max_id
-                FROM personal_memories
-                GROUP BY category, key
-            ) latest ON pm.id = latest.max_id
-            """,
-            (LEGACY_USER_ID,),
-        )
-        cursor.execute("DROP TABLE personal_memories")
-        cursor.execute("ALTER TABLE personal_memories_new RENAME TO personal_memories")
+    # V4 is a clean-slate release for legacy personal memories. Preserve rows under
+    # an explicit legacy table name instead of migrating them into the active schema.
+    if _table_exists(cursor, "personal_memories"):
+        target = _next_legacy_personal_memory_table(cursor)
+        cursor.execute(f"ALTER TABLE personal_memories RENAME TO {target}")
 
     # reflections
     if not _table_has_column(cursor, "reflections", "user_id"):
@@ -212,7 +214,6 @@ def _migrate():
     for table in (
         "user_profile",
         "emotional_history",
-        "personal_memories",
         "reflections",
         "episodes",
     ):

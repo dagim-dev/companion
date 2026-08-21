@@ -16,7 +16,6 @@ client = OpenAI(
 
 def build_system_message(
     profile,
-    personal_memories,
     emotional_profile,
     intent,
     behavior,
@@ -38,8 +37,6 @@ def build_system_message(
         runtime_personality=personality_state,
         effective_personality=effective_personality,
     )
-
-    personal_from_context = context.get("personal_memories", personal_memories)
 
     return f"""
 {personality_layer}
@@ -100,9 +97,6 @@ If high intensity is true:
 CONTEXT SUMMARY:
 {context}
 
-RELEVANT PERSONAL MEMORIES (this turn):
-{personal_from_context}
-
 REFLECTION CHECK-IN:
 {context.get("reflection_checkin", "None")}
 
@@ -141,7 +135,6 @@ COGNITION (private — use silently, never quote):
 def build_chat_messages(
     conversation,
     profile,
-    personal_memories,
     emotional_profile,
     intent,
     behavior,
@@ -159,7 +152,6 @@ def build_chat_messages(
 ):
     system_message = build_system_message(
         profile,
-        personal_memories,
         emotional_profile,
         intent,
         behavior,
@@ -213,7 +205,6 @@ FALLBACK_RESPONSE = (
 def chat_stream(
     conversation,
     profile,
-    personal_memories,
     emotional_profile,
     intent,
     behavior,
@@ -234,7 +225,6 @@ def chat_stream(
     messages = build_chat_messages(
         conversation,
         profile,
-        personal_memories,
         emotional_profile,
         intent,
         behavior,
@@ -277,7 +267,6 @@ def chat_stream(
 def chat(
     conversation,
     profile,
-    personal_memories,
     emotional_profile,
     intent,
     behavior,
@@ -299,7 +288,6 @@ def chat(
     for delta in chat_stream(
         conversation,
         profile,
-        personal_memories,
         emotional_profile,
         intent,
         behavior,

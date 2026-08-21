@@ -27,10 +27,7 @@ from persistence_policy import (
     get_persist_interval_turns,
     log_persistence_status,
 )
-from memory_recall import (
-    retrieve_relevant_personal_memories,
-    retrieve_style_preference_memories,
-)
+from memory_recall import retrieve_style_preference_memories
 from memory_retriever import retrieve_relevant_reflections
 from memory_insights import get_recent_insights
 from learned_preferences import get_active_learned_preferences
@@ -58,7 +55,6 @@ class PreparedTurn:
     emotion: str
     intensity: float
     profile: dict
-    personal_memories: list
     emotional_profile: dict
     behavior: dict
     patterns: dict
@@ -122,9 +118,7 @@ def prepare_turn(state: NovaState, user_input: str) -> Optional[PreparedTurn]:
         relevant_reflections = []
 
     context = build_context(profile, emotional_profile, patterns, state.conversation)
-    personal_memories = retrieve_relevant_personal_memories(user_input)
     learned_preference_memories = retrieve_style_preference_memories(user_input)
-    context["personal_memories"] = personal_memories
     context["relevant_reflections"] = relevant_reflections
 
     cognition = generate_cognition(
@@ -191,7 +185,6 @@ def prepare_turn(state: NovaState, user_input: str) -> Optional[PreparedTurn]:
         emotion=emotion,
         intensity=intensity,
         profile=profile,
-        personal_memories=personal_memories,
         emotional_profile=emotional_profile,
         behavior=behavior,
         patterns=patterns,
@@ -306,7 +299,6 @@ def _llm_kwargs(state: NovaState, turn: PreparedTurn) -> dict[str, Any]:
     return {
         "conversation": state.conversation,
         "profile": turn.profile,
-        "personal_memories": turn.personal_memories,
         "emotional_profile": turn.emotional_profile,
         "intent": turn.intent,
         "behavior": turn.behavior,

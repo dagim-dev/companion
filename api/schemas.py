@@ -2,9 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
+MAX_CHAT_MESSAGE_CHARS = 4000
+MAX_TTS_TEXT_CHARS = 2000
+
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(max_length=MAX_CHAT_MESSAGE_CHARS)
     thread_id: str | None = None
 
 
@@ -16,7 +19,12 @@ class ChatResponse(BaseModel):
 
 
 class TTSRequest(BaseModel):
-    text: str
+    text: str = Field(max_length=MAX_TTS_TEXT_CHARS)
+
+
+class RecentConversationMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
 
 
 class TranscribeResponse(BaseModel):

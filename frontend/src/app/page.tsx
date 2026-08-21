@@ -5,7 +5,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatWindow } from "@/components/ChatWindow";
 import { SettingsPanel } from "@/components/SettingsPanel";
-import { fetchHealth, fetchProfile } from "@/lib/api";
+import { fetchHealth, fetchProfile, fetchRecentConversations } from "@/lib/api";
 import { useChat } from "@/hooks/useChat";
 
 function ChatApp() {
@@ -13,7 +13,14 @@ function ChatApp() {
   const [addressAs, setAddressAs] = useState<string | null>(null);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [voiceAvailable, setVoiceAvailable] = useState(false);
-  const { messages, isThinking, isStreaming, error, sendMessage } = useChat();
+  const {
+    messages,
+    isThinking,
+    isStreaming,
+    error,
+    sendMessage,
+    replaceMessages,
+  } = useChat();
 
   const loadProfile = useCallback(async () => {
     try {
@@ -26,9 +33,27 @@ function ChatApp() {
     }
   }, []);
 
+  const loadRecentMessages = useCallback(async () => {
+    try {
+      const recent = await fetchRecentConversations();
+      replaceMessages(
+        recent.map((message, index) => ({
+          ...message,
+          id: `history-${index}`,
+        })),
+      );
+    } catch {
+      replaceMessages([]);
+    }
+  }, [replaceMessages]);
+
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  useEffect(() => {
+    loadRecentMessages();
+  }, [loadRecentMessages]);
 
   useEffect(() => {
     fetchHealth()

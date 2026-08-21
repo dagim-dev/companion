@@ -4,6 +4,8 @@ from datetime import datetime
 import config
 from memory_scope import require_user_id
 
+LEGACY_PERSONAL_MEMORY_TABLE_PREFIX = "legacy_personal_memories_v3"
+
 # =====================================================
 # CONNECTION HELPER
 # =====================================================
@@ -15,6 +17,77 @@ def get_connection():
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=30000")
     return conn
+
+
+def _table_exists(cursor, table_name: str) -> bool:
+    cursor.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?",
+        (table_name,),
+    )
+    return cursor.fetchone() is not None
+
+
+def _legacy_personal_memory_tables(cursor) -> list[str]:
+    cursor.execute(
+        """
+        SELECT name
+        FROM sqlite_master
+        WHERE type = 'table'
+          AND name LIKE ?
+        ORDER BY name
+        """,
+        (f"{LEGACY_PERSONAL_MEMORY_TABLE_PREFIX}%",),
+    )
+    return [row[0] for row in cursor.fetchall()]
+
+
+def _next_legacy_personal_memory_table_name(cursor) -> str:
+    existing = set(_legacy_personal_memory_tables(cursor))
+    if LEGACY_PERSONAL_MEMORY_TABLE_PREFIX not in existing:
+        return LEGACY_PERSONAL_MEMORY_TABLE_PREFIX
+
+    suffix = 2
+    while True:
+        candidate = f"{LEGACY_PERSONAL_MEMORY_TABLE_PREFIX}_{suffix}"
+        if candidate not in existing:
+            return candidate
+        suffix += 1
+
+
+def _quarantine_legacy_personal_memories(cursor) -> None:
+    if not _table_exists(cursor, "personal_memories"):
+        return
+
+    target_table = _next_legacy_personal_memory_table_name(cursor)
+    cursor.execute(f"ALTER TABLE personal_memories RENAME TO {target_table}")
+
+
+def get_legacy_personal_memory_status() -> dict[str, object]:
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        legacy_tables = _legacy_personal_memory_tables(cursor)
+        active_present = _table_exists(cursor, "personal_memories")
+        record_count = 0
+        for table_name in legacy_tables:
+            row = cursor.execute(f"SELECT COUNT(*) FROM {table_name}").fetchone()
+            record_count += int(row[0] if row else 0)
+    finally:
+        conn.close()
+
+    if active_present:
+        status = "conflict"
+    elif legacy_tables:
+        status = "quarantined"
+    else:
+        status = "clean"
+
+    return {
+        "status": status,
+        "active_table_present": active_present,
+        "legacy_tables": legacy_tables,
+        "record_count": record_count,
+    }
 
 
 def _ensure_learned_preferences_columns(cursor) -> None:
@@ -53,6 +126,7 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("PRAGMA journal_mode=WAL")
+    _quarantine_legacy_personal_memories(cursor)
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS users (
@@ -102,21 +176,6 @@ def init_db():
         emotion TEXT,
         intensity REAL,
         timestamp TEXT
-    )
-    """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS personal_memories (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT NOT NULL,
-        category TEXT,
-        key TEXT,
-        value TEXT,
-        embedding TEXT,
-        importance REAL DEFAULT 0.5,
-        created_at TEXT,
-        updated_at TEXT,
-        UNIQUE(user_id, category, key)
     )
     """)
 
@@ -270,7 +329,6 @@ def init_db():
     for table in (
         "user_profile",
         "emotional_history",
-        "personal_memories",
         "reflections",
         "episodes",
         "conversations",

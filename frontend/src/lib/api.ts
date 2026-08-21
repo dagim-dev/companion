@@ -8,6 +8,8 @@ export type ChatMessage = {
   content: string;
 };
 
+export type RecentConversationMessage = Omit<ChatMessage, "id">;
+
 export type SSEEvent =
   | { type: "token"; content: string }
   | {
@@ -15,6 +17,11 @@ export type SSEEvent =
       content: string;
       intent?: string;
       emotion?: string;
+    }
+  | {
+      type: "error";
+      code: string;
+      message: string;
     };
 
 export type TokenResponse = {
@@ -219,6 +226,20 @@ export async function fetchProfile(): Promise<UserProfile> {
     throw new Error(formatApiError(err, "Failed to load profile"));
   }
   return response.json() as Promise<UserProfile>;
+}
+
+export async function fetchRecentConversations(
+  limit = 20,
+): Promise<RecentConversationMessage[]> {
+  const response = await fetch(`${API_URL}/v1/chat/recent?limit=${limit}`, {
+    headers: authHeaders(),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(formatApiError(err, "Failed to load recent conversations"));
+  }
+  return response.json() as Promise<RecentConversationMessage[]>;
 }
 
 export async function updateAddressAs(address_as: string): Promise<UserProfile> {

@@ -32,7 +32,6 @@ def _turn(intensity=0.2, emotion="neutral"):
         emotion=emotion,
         intensity=intensity,
         profile={},
-        personal_memories=[],
         emotional_profile={},
         behavior={},
         patterns={},
@@ -201,7 +200,6 @@ class PrepareTurnCognitionWiringTests(unittest.TestCase):
             ),
             mock.patch.object(mp, "retrieve_relevant_reflections", return_value=[]),
             mock.patch.object(mp, "build_context", return_value={}),
-            mock.patch.object(mp, "retrieve_relevant_personal_memories", return_value=[]),
             mock.patch.object(
                 mp,
                 "retrieve_style_preference_memories",
@@ -297,7 +295,6 @@ class MemoryExtractionQueueFlowTests(unittest.TestCase):
             ),
             mock.patch.object(mp, "retrieve_relevant_reflections", return_value=[]),
             mock.patch.object(mp, "build_context", return_value={}),
-            mock.patch.object(mp, "retrieve_relevant_personal_memories", return_value=[]),
             mock.patch.object(mp, "retrieve_style_preference_memories", return_value=[]),
             mock.patch.object(mp, "generate_cognition", return_value=_cognition()),
             mock.patch.object(mp, "get_active_learned_preferences", return_value=[]),

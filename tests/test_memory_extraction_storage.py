@@ -128,6 +128,173 @@ class MemoryExtractionStorageTests(unittest.TestCase):
         self.assertIn("context_json", cols)
         self.assertIn("source_count", cols)
 
+    def test_init_db_quarantines_legacy_personal_memories_table(self):
+        os.remove(self.db_path)
+        conn = get_connection()
+        try:
+            conn.execute(
+                """
+                CREATE TABLE personal_memories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category TEXT,
+                    key TEXT,
+                    value TEXT,
+                    embedding TEXT,
+                    importance REAL DEFAULT 0.5,
+                    created_at TEXT,
+                    updated_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO personal_memories (category, key, value, importance)
+                VALUES ('identity', 'age', '32', 0.9)
+                """
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        init_db()
+
+        conn = get_connection()
+        try:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+            legacy_rows = conn.execute(
+                "SELECT category, key, value FROM legacy_personal_memories_v3"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        self.assertNotIn("personal_memories", tables)
+        self.assertIn("legacy_personal_memories_v3", tables)
+        self.assertEqual(len(legacy_rows), 1)
+        self.assertEqual(legacy_rows[0]["category"], "identity")
+        self.assertEqual(legacy_rows[0]["key"], "age")
+        self.assertEqual(legacy_rows[0]["value"], "32")
+
+    def test_migration_001_quarantines_legacy_personal_memories(self):
+        os.remove(self.db_path)
+        conn = get_connection()
+        try:
+            conn.execute(
+                """
+                CREATE TABLE user_profile (
+                    key TEXT NOT NULL,
+                    value TEXT,
+                    PRIMARY KEY (key)
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE emotional_state (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    current TEXT,
+                    intensity REAL,
+                    last_updated TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE emotional_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    emotion TEXT,
+                    intensity REAL,
+                    timestamp TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE personal_memories (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    category TEXT,
+                    key TEXT,
+                    value TEXT,
+                    embedding TEXT,
+                    importance REAL DEFAULT 0.5,
+                    created_at TEXT,
+                    updated_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE reflections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    topic TEXT,
+                    content TEXT,
+                    embedding TEXT,
+                    emotion TEXT,
+                    intensity REAL,
+                    reflection_count INTEGER DEFAULT 1,
+                    salience REAL DEFAULT 0.5,
+                    resolved INTEGER DEFAULT 0,
+                    created_at TEXT,
+                    last_mentioned TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE episodes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    summary TEXT,
+                    emotion TEXT,
+                    importance REAL,
+                    created_at TEXT
+                )
+                """
+            )
+            conn.execute(
+                """
+                INSERT INTO personal_memories (category, key, value, importance)
+                VALUES ('explicit', 'memory_1', 'remember this fact', 0.95)
+                """
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        migration_path = os.path.join(
+            os.getcwd(),
+            "migrations",
+            "001_add_user_id.py",
+        )
+        spec = importlib.util.spec_from_file_location("migration_001", migration_path)
+        migration = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(migration)
+
+        migration._migrate()
+
+        conn = get_connection()
+        try:
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                ).fetchall()
+            }
+            legacy_rows = conn.execute(
+                "SELECT category, key, value FROM legacy_personal_memories_v3"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        self.assertNotIn("personal_memories", tables)
+        self.assertIn("legacy_personal_memories_v3", tables)
+        self.assertEqual(len(legacy_rows), 1)
+        self.assertEqual(legacy_rows[0]["value"], "remember this fact")
+
     def test_create_conversation_message_returns_message_id(self):
         message_id = create_conversation_message(
             user_id="user-123",

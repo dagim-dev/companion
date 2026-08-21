@@ -56,7 +56,7 @@ For local web dev without the login UI, set `NEXT_PUBLIC_DEV_TOKEN` in the front
 | `OPENAI_API_KEY` | — | LLM + speech-to-text (Whisper) |
 | `ELEVENLABS_API_KEY` | — | Text-to-speech |
 | `ELEVENLABS_VOICE_ID` | Configured voice ID | Optional TTS voice override |
-| `VOICE_ENABLED` | `true` | Master switch for `/v1/transcribe` and `/v1/tts` |
+| `VOICE_ENABLED` | `false` | Master switch for `/v1/transcribe` and `/v1/tts`; keep disabled for the first deployment until voice is verified |
 
 ---
 
@@ -81,6 +81,8 @@ python migrations/005_memory_extraction_jobs.py
 | `003` | `conversations` table (message persistence) |
 | `004` | Episode `resolved` column, `followup_state` table |
 | `005` | `memory_extraction_jobs`, expanded `learned_preferences` schema |
+
+V4 is an intentional clean-slate release for legacy `personal_memories`. If that old table is still present, startup renames it to `legacy_personal_memories_v3*`; the rows remain in SQLite for manual inspection/export, but the V4 runtime does not read them.
 
 ---
 
@@ -174,6 +176,10 @@ Use `onboarding_completed` to route new users to onboarding before chat.
 | `voice.available` | `enabled` and both keys configured |
 
 No secrets are exposed in this payload.
+
+**Response `503`**
+
+Returned when the process is up but SQLite cannot be reached. The JSON body keeps the same `db` / `voice` fields, but `status` becomes `"error"`.
 
 ---
 
@@ -468,7 +474,9 @@ Both endpoints require **auth** and completed onboarding.
 }
 ```
 
-`thread_id` is reserved for future persisted threads (optional, no-op today). Messages are persisted internally; there is no conversations REST API yet.
+`thread_id` is reserved for future persisted threads (optional, no-op today). Messages are persisted internally, and `GET /v1/chat/recent` exposes the latest transcript entries for refresh restore.
+
+`message` is limited to **4000 characters**.
 
 **Response `200`**
 
@@ -495,12 +503,15 @@ Each event is one line:
 data: {"type":"token","content":"Hel"}
 
 data: {"type":"done","content":"Hello, Friend. ...","intent":"casual","emotion":"neutral"}
+
+data: {"type":"error","code":"stream_failed","message":"NOVA could not finish that streamed reply. Please retry."}
 ```
 
 | Event `type` | Fields | Meaning |
 |--------------|--------|---------|
 | `token` | `content` | Raw LLM token chunk |
 | `done` | `content`, `intent`, `emotion?` | Final reply after post-processing |
+| `error` | `code`, `message` | Structured streaming failure event; no `done` event follows |
 
 The UI should render tokens live, then replace with `done.content` when the done event arrives.
 
@@ -513,6 +524,7 @@ Heavy work (prepare, stream, finalize) runs in thread pool workers so the event 
 | Status | When |
 |--------|------|
 | `400` | Empty or whitespace-only `message` |
+| `409` | Another turn is already running for the same user |
 | `409` | Onboarding not complete |
 
 **409 body**
@@ -524,6 +536,36 @@ Heavy work (prepare, stream, finalize) runs in thread pool workers so the event 
     "message": "Complete companion onboarding before chatting."
   }
 }
+```
+
+**409 duplicate-turn body**
+
+```json
+{
+  "detail": {
+    "code": "turn_in_progress",
+    "message": "Another turn is already running for this user. Please wait and retry."
+  }
+}
+```
+
+### Recent conversations
+
+`GET /v1/chat/recent?limit=20` — **auth required**
+
+Returns the most recent persisted transcript entries for the current user so the frontend can restore chat after refresh.
+
+| Query param | Default | Range |
+|-------------|---------|-------|
+| `limit` | `20` | `1` to `100` |
+
+**Response `200`**
+
+```json
+[
+  { "role": "user", "content": "Hello" },
+  { "role": "assistant", "content": "Hi there." }
+]
 ```
 
 ---
@@ -546,7 +588,9 @@ Both endpoints require **auth**. Return **503** when voice is disabled (`VOICE_E
 }
 ```
 
-**Errors:** `400` for missing or empty file; `503` when STT is unavailable.
+Audio uploads above **10 MiB** are rejected with `413`.
+
+**Errors:** `400` for missing or empty file; `413` for oversized audio; `503` when STT is unavailable.
 
 Requires `OPENAI_API_KEY` and `VOICE_ENABLED=true`.
 
@@ -564,9 +608,11 @@ Requires `OPENAI_API_KEY` and `VOICE_ENABLED=true`.
 }
 ```
 
+`text` is limited to **2000 characters**.
+
 **Response `200`:** `audio/mpeg` bytes.
 
-**Errors:** `400` for empty text; `503` when TTS is unavailable.
+**Errors:** `400` for empty text; `422` for oversized text; `503` when TTS is unavailable.
 
 Requires `ELEVENLABS_API_KEY` and `VOICE_ENABLED=true`. Optional `ELEVENLABS_VOICE_ID` selects the voice.
 
@@ -649,7 +695,7 @@ Job statuses: `pending`, `processing`, `completed`, `pending_retry`, `failed_per
 
 | Layer | Behavior |
 |-------|----------|
-| **Database** | Per-user isolation via `user_id` on all memory tables. Conversations, episodes, learned preferences, and extraction jobs persist across restarts. |
+| **Database** | Per-user isolation via `user_id` on all memory tables. Conversations, episodes, learned preferences, and extraction jobs persist across restarts. Legacy `personal_memories` rows are quarantined under `legacy_personal_memories_v3*` and are not part of the V4 runtime contract. |
 | **In-memory** | One `NovaState` (conversation context + engines) per authenticated user in `state_store`. Server restart clears in-memory history but keeps SQLite data. |
 | **Background worker** | Memory extraction worker starts on API startup. After each user message, jobs may be enqueued to extract learned preferences asynchronously. |
 

@@ -1,14 +1,15 @@
 import asyncio
 import json
-import traceback
+import logging
 from typing import Annotated, AsyncIterator, Callable, Iterator, TypeVar, cast
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
 
-from api.deps import get_state
-from api.schemas import ChatRequest, ChatResponse
+from api.deps import get_current_user, get_state
+from api.schemas import ChatRequest, ChatResponse, RecentConversationMessage
 from companion_prefs import is_onboarding_complete
+from memory import get_recent_conversations
 from memory_scope import user_scope
 from message_processor import (
     PreparedTurn,
@@ -18,11 +19,19 @@ from message_processor import (
     stream_llm_tokens,
 )
 from session_state import NovaState
+from turn_guard import TurnLease, UserTurnBusyError, acquire_user_turn
 
 router = APIRouter(prefix="/v1", tags=["chat"])
+logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
 _STREAM_END = object()
+TURN_IN_PROGRESS_DETAIL = {
+    "code": "turn_in_progress",
+    "message": "Another turn is already running for this user. Please wait and retry.",
+}
+STREAM_ERROR_CODE = "stream_failed"
+STREAM_ERROR_MESSAGE = "NOVA could not finish that streamed reply. Please retry."
 
 
 def _require_onboarding(user_id: str) -> None:
@@ -38,6 +47,23 @@ def _require_onboarding(user_id: str) -> None:
 
 def _sse_event(payload: dict) -> str:
     return f"data: {json.dumps(payload)}\n\n"
+
+
+def _stream_error_event() -> str:
+    return _sse_event(
+        {
+            "type": "error",
+            "code": STREAM_ERROR_CODE,
+            "message": STREAM_ERROR_MESSAGE,
+        }
+    )
+
+
+def _acquire_turn_or_409(user_id: str) -> TurnLease:
+    try:
+        return acquire_user_turn(user_id)
+    except UserTurnBusyError as exc:
+        raise HTTPException(status_code=409, detail=TURN_IN_PROGRESS_DETAIL) from exc
 
 
 async def _to_thread_with_user_scope(
@@ -78,9 +104,22 @@ async def _stream_llm_tokens_threaded(
         yield cast(str, item)
 
 
-async def _chat_stream_events(state: NovaState, message: str) -> AsyncIterator[str]:
-    async for event in _chat_stream_events_scoped(state, message):
-        yield event
+async def _chat_stream_events(
+    state: NovaState,
+    message: str,
+    lease: TurnLease | None = None,
+) -> AsyncIterator[str]:
+    try:
+        async for event in _chat_stream_events_scoped(state, message):
+            yield event
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        logger.exception("chat_stream_failed user_id=%s", state.user_id)
+        yield _stream_error_event()
+    finally:
+        if lease is not None:
+            lease.release()
 
 
 async def _chat_stream_events_scoped(
@@ -143,10 +182,13 @@ def chat_endpoint(
     _require_onboarding(state.user_id)
 
     try:
-        with user_scope(state.user_id):
-            result = process_message(state, body.message, echo_to_terminal=False)
+        with _acquire_turn_or_409(state.user_id):
+            with user_scope(state.user_id):
+                result = process_message(state, body.message, echo_to_terminal=False)
+    except HTTPException:
+        raise
     except Exception as exc:
-        traceback.print_exc()
+        logger.exception("chat_request_failed user_id=%s", state.user_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     return ChatResponse(
@@ -166,9 +208,10 @@ async def chat_stream_endpoint(
         raise HTTPException(status_code=400, detail="message is required")
 
     _require_onboarding(state.user_id)
+    lease = _acquire_turn_or_409(state.user_id)
 
     return StreamingResponse(
-        _chat_stream_events(state, body.message),
+        _chat_stream_events(state, body.message, lease),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -176,3 +219,15 @@ async def chat_stream_endpoint(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/chat/recent", response_model=list[RecentConversationMessage])
+def recent_conversations_endpoint(
+    user_id: Annotated[str, Depends(get_current_user)],
+    limit: int = Query(default=20, ge=1, le=100),
+) -> list[RecentConversationMessage]:
+    conversations = get_recent_conversations(user_id, limit=limit)
+    return [
+        RecentConversationMessage(role=item["role"], content=item["content"])
+        for item in conversations
+    ]

@@ -91,7 +91,7 @@ Work below is ordered roughly by when it becomes necessary. None of it is requir
 
 | Work item | What | Why |
 |-----------|------|-----|
-| Memory recall performance | Indexing, embedding cache, limit linear scans in `personal_memory` / `memory_recall` | `prepare_turn()` does multiple DB + embedding calls per turn |
+| Memory recall performance | Indexing, embedding cache, limit linear scans in `memory_recall` | `prepare_turn()` does multiple DB + embedding calls per turn |
 | Connection / write discipline | Audit all DB paths for short transactions; batch where safe | Reduces lock duration under concurrent threads |
 | Rate limiting per user | Cap concurrent streams and turns per minute | Protects thread pool and OpenAI quota |
 | Session TTL and cleanup | Already partially in `state_store.py`; tune TTL and eviction | Limits memory growth of `_states` dict |

@@ -10,6 +10,39 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Added
 
+- `docs/V4_SCOPE.md` — living V4 scope tracker
+- `GET /v1/chat/recent` — restore recent transcript after refresh
+- `scripts/smoke_release_e2e.py` — production-like browser smoke test (register, onboard, stream, refresh, sign in again)
+- `tests/test_release_contract.py` — release contract tests for health, size limits, and transcript restore
+- `turn_guard.py` — single-process per-user turn guard for sync and streaming chat
+- `frontend/eslint.config.mjs` — non-interactive ESLint flat config (replaces deprecated `next lint`)
+
+### Changed
+
+- **NOVA rebrand**: Jarvis identifiers, UI copy, and `nova-*` theme tokens across backend, frontend, scripts, and docs
+- Salutations use profile `address_as` instead of hardcoded names (`message_processor.py`, `NicknamePicker.tsx`, etc.)
+- Default role/catalog identifiers: `general_jarvis` → `general_nova`; session state renamed to `NovaState`
+- `prompts/core.py` — updated persona framing for NOVA
+- `role_id` on onboarding/preferences APIs — stored value is now `general_nova` (was `general_jarvis` in 0.4.0)
+- Legacy `personal_memories` tables are quarantined as `legacy_personal_memories_v3*` on startup instead of being read by the V4 runtime
+- `/health` returns non-2xx when SQLite is unreachable
+- Chat, TTS, and audio upload request-size limits enforced at the API boundary
+- `VOICE_ENABLED` defaults to `false`
+- Next.js API rewrites are development-only; production requires `NEXT_PUBLIC_API_URL`
+- Streaming chat failures emit structured SSE `error` events; duplicate turns return `409 turn_in_progress`
+
+### Removed
+
+- `personal_memory.py` — module deleted
+- Legacy `personal_memories` runtime support — V4 now quarantines old rows under `legacy_personal_memories_v3*` instead of migrating them into the active memory contract
+- Embedding-based personal memory recall — removed from `memory_recall.py`; style recall now reads `learned_preferences` only
+- Personal memories section removed from LLM system prompt (`llm.py`); `personal_memories` arg dropped from `chat_stream` / `build_chat_messages`
+- `clear_learned_style()` no longer deletes `personal_memories` rows (`companion_prefs.py`)
+
+## [0.4.0] - 2026-06-19
+
+### Added
+
 - `personality_composer.py` — composes effective personality from onboarding sliders, learned modifiers, and runtime adaptation
 - `learned_preferences.py` — aggregates memory-extraction insights into persistent style modifiers
 - Async memory extraction: `memory_extraction_jobs.py`, `memory_extraction_worker.py`, `memory_insights.py` (background worker started on API startup)
@@ -17,7 +50,7 @@ Version numbers below are inferred from git history — the repo has no release 
 - Dev memory tooling: `api/routers/dev_memory.py`, `frontend/src/app/dev/memory-extraction/page.tsx`
 - V2 preference fields in onboarding and settings (challenge, detail, examples, accountability)
 - `POST /v1/preferences/reset-learned` — clear learned style modifiers
-- Test suite expanded to 103 tests (cognition, follow-ups, extraction, preferences, message processor, personality)
+- Test suite expanded to ~100 tests (cognition, follow-ups, extraction, preferences, message processor, personality)
 - Documentation overhaul: `docs/ARCHITECTURE.md`, ADRs in `docs/decisions/`, `.env.example`, this changelog
 
 ### Changed
@@ -34,7 +67,7 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Deprecated
 
-- `role_id` on onboarding/preferences APIs — accepted for backward compatibility but always stored as `general_nova`; use sliders and learned preferences to shape personality
+- `role_id` on onboarding/preferences APIs — accepted for backward compatibility but always stored as `general_jarvis`; use sliders and learned preferences to shape personality
 
 ## [0.3.0] - 2026-06-12
 
@@ -69,7 +102,7 @@ Version numbers below are inferred from git history — the repo has no release 
 - `memory_followups.py` — gated follow-up question pipeline (policy in code, LLM for surface wording)
 - Async SSE threading — `asyncio.to_thread()` offloading in `api/routers/chat.py` for non-blocking streams
 - Migrations `003_conversations.py`, `004_followups.py`
-- `Future change1.md` — SSE decision log and scaling roadmap
+- `Future change.md` — SSE decision log and scaling roadmap
 - Tests: `test_chat_stream_threading.py`, `test_memory_followups.py`, `test_internal_state.py`
 - Expanded `internal_state.py` and `state_store.py` for V3 session improvements
 - Conversation and followup tables in SQLite
@@ -113,7 +146,7 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Added
 
-- Initial NOVA Companion V1
+- Initial JARVIS Companion V1
 - Terminal CLI (`main.py`) and monolithic HTTP API
 - Turn pipeline: `message_processor.py` (prepare → LLM → finalize)
 - Cognitive engines: classifier, decision engine, reflection, curiosity, meta-cognition, rhythm
@@ -121,7 +154,8 @@ Version numbers below are inferred from git history — the repo has no release 
 - OpenAI integration for chat and streaming
 - Optional voice: Whisper STT, ElevenLabs TTS
 
-[Unreleased]: https://github.com/dagim-dev/companion/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/dagim-dev/companion/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/dagim-dev/companion/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/dagim-dev/companion/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/dagim-dev/companion/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/dagim-dev/companion/compare/v0.1.1...v0.2.0

@@ -26,7 +26,7 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "memory.db")
 ENV = os.getenv("ENV", "development")
 
 # Voice: set false in prod until keys + error handling are verified
-VOICE_ENABLED = os.getenv("VOICE_ENABLED", "true").lower() in (
+VOICE_ENABLED = os.getenv("VOICE_ENABLED", "false").lower() in (
     "1",
     "true",
     "yes",

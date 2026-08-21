@@ -483,7 +483,7 @@ def save_runtime_personality(
 
 
 def clear_learned_style(user_id: str | None = None) -> None:
-    """Clear runtime_json and interaction_style memories; keep onboarding prefs."""
+    """Clear runtime_json and learned preferences; keep onboarding prefs."""
     uid = user_id or require_user_id()
     prefs = get_companion_preferences(uid)
     if prefs:
@@ -491,18 +491,6 @@ def clear_learned_style(user_id: str | None = None) -> None:
         save_companion_preferences(prefs)
 
     clear_learned_preferences(uid)
-
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        DELETE FROM personal_memories
-        WHERE user_id = ? AND category = 'interaction_style'
-        """,
-        (uid,),
-    )
-    conn.commit()
-    conn.close()
 
 
 def list_role_catalog() -> list[dict[str, str]]:

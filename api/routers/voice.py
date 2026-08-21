@@ -1,4 +1,4 @@
-import traceback
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -10,6 +10,8 @@ from voice_capabilities import VoiceUnavailableError
 from voice_service import synthesize_speech, transcribe_audio
 
 VOICE_UNAVAILABLE_DETAIL = "Voice service unavailable"
+MAX_AUDIO_UPLOAD_BYTES = 10 * 1024 * 1024
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/v1", tags=["voice"])
 
@@ -25,6 +27,11 @@ async def transcribe_endpoint(
     data = await file.read()
     if not data:
         raise HTTPException(status_code=400, detail="empty audio file")
+    if len(data) > MAX_AUDIO_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"audio file exceeds {MAX_AUDIO_UPLOAD_BYTES} bytes",
+        )
 
     try:
         text = transcribe_audio(data, filename=file.filename)
@@ -34,7 +41,7 @@ async def transcribe_endpoint(
             detail=exc.args[0] if exc.args else VOICE_UNAVAILABLE_DETAIL,
         ) from exc
     except Exception as exc:
-        traceback.print_exc()
+        logger.exception("transcribe_request_failed")
         raise HTTPException(
             status_code=503,
             detail=VOICE_UNAVAILABLE_DETAIL,
@@ -59,7 +66,7 @@ async def tts_endpoint(
             detail=exc.args[0] if exc.args else VOICE_UNAVAILABLE_DETAIL,
         ) from exc
     except Exception as exc:
-        traceback.print_exc()
+        logger.exception("tts_request_failed")
         raise HTTPException(
             status_code=503,
             detail=VOICE_UNAVAILABLE_DETAIL,

@@ -64,6 +64,10 @@ export function useChat() {
                   : m,
               ),
             );
+          } else if (event.type === "error") {
+            setIsThinking(false);
+            setError(event.message);
+            setMessages((prev) => prev.filter((m) => m.id !== assistantId));
           }
         },
         abortRef.current.signal,
@@ -75,6 +79,7 @@ export function useChat() {
     } finally {
       setIsThinking(false);
       setIsStreaming(false);
+      abortRef.current = null;
     }
   }, [isStreaming]);
 
@@ -84,5 +89,6 @@ export function useChat() {
     isStreaming,
     error,
     sendMessage,
+    replaceMessages: setMessages,
   };
 }

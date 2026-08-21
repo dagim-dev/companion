@@ -7,7 +7,7 @@ A locally run, NOVA-style AI companion with long-term memory, a cognition pipeli
 ## What it does
 
 - Conversational AI with NOVA-style personality, customized via onboarding sliders, learned preferences, and per-turn runtime adaptation
-- Long-term memory: personal facts, emotional history, reflections, episodic summaries, learned preferences
+- Long-term memory: conversation continuity, emotional history, reflections, episodic summaries, learned preferences
 - Cognition pipeline: intent/emotion classification, rules-first cognition with optional mini-LLM reasoning, behavior and rhythm control
 - Async memory extraction: background worker learns insights from messages after each turn
 - Optional voice: Whisper STT + ElevenLabs TTS
@@ -45,6 +45,16 @@ JWT_SECRET=change-me-in-production
 
 See [.env.example](.env.example) for all variables. For the frontend, see [frontend/.env.local.example](frontend/.env.local.example).
 
+Recommended first-deploy production settings:
+
+```env
+ENV=production
+JWT_SECRET=use-a-long-random-secret
+DATABASE_PATH=/var/lib/nova/memory.db
+CORS_ORIGINS=https://your-frontend-origin.example
+VOICE_ENABLED=false
+```
+
 ## Run locally
 
 You need two terminals: API server and frontend.
@@ -67,6 +77,30 @@ npm run dev
 Open http://localhost:3000. Register or sign in, complete the onboarding wizard, then chat.
 
 Health check: http://localhost:8000/health
+
+## Production run
+
+Backend:
+
+```bash
+source .venv/bin/activate
+uvicorn api:app --host 0.0.0.0 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+NEXT_PUBLIC_API_URL=https://your-api-origin.example npm run build
+NEXT_PUBLIC_API_URL=https://your-api-origin.example npm run start -- --hostname 0.0.0.0 --port 3000
+```
+
+Notes:
+
+- Next.js localhost rewrites are **development-only**. Production should set `NEXT_PUBLIC_API_URL` explicitly or run frontend and API behind the same reverse proxy/origin.
+- Keep `DATABASE_PATH` on persistent storage. Do not point production at a temporary directory.
+- Keep `CORS_ORIGINS` aligned with the exact browser origins that should call the API.
 
 ## CLI mode
 
@@ -120,12 +154,48 @@ python migrations/004_followups.py
 python migrations/005_memory_extraction_jobs.py
 ```
 
+V4 ships as an intentional clean-slate release for legacy `personal_memories`. If an older database still contains that table, startup quarantines it under `legacy_personal_memories_v3*` so the rows are preserved for manual inspection/export but are not read by the V4 runtime.
+
+## SQLite backup and restore
+
+Stop the API before copying the database for the simplest backup/restore flow:
+
+```bash
+cp memory.db memory.db.bak
+cp memory.db.bak memory.db
+```
+
+If you use a custom `DATABASE_PATH`, back up that file instead.
+
 ## Tests
 
 ```bash
 source .venv/bin/activate
 python -m pytest tests/ -q
+cd frontend && npm run lint && npm run build
 ```
+
+### Release smoke test
+
+With the API and a production-built frontend running locally:
+
+```bash
+# Terminal 1 — API (ensure CORS_ORIGINS includes the frontend origin)
+source .venv/bin/activate
+uvicorn api:app --host 127.0.0.1 --port 8000
+
+# Terminal 2 — frontend
+cd frontend
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 npm run build
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 npm run start -- --hostname 127.0.0.1 --port 3001
+
+# Terminal 3 — browser smoke (requires: pip install playwright && playwright install chromium)
+pip install playwright
+playwright install chromium
+FRONTEND_URL=http://127.0.0.1:3001 python scripts/smoke_release_e2e.py
+```
+
+The smoke test covers register, onboarding, one streaming chat turn, transcript restore after refresh, and sign-in again.
 
 ## Project layout
 

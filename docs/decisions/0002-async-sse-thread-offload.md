@@ -55,10 +55,10 @@ Decision criteria that favored B: preserve behavior and SSE contract, minimal sc
 - `ContextVar` must be set inside each worker thread, not only on the event-loop task.
 - Time-to-first-token still dominated by sync `prepare_turn()` work.
 
-Scaling beyond these limits is documented in [Future change1.md](../../Future%20change1.md) (Tier 1–4 roadmap).
+Scaling beyond these limits is documented in [Future change.md](../../Future%20change.md) (Tier 1–4 roadmap).
 
 ## References
 
 - Commit `0a673df`
-- [Future change1.md](../../Future%20change1.md) — original tradeoff analysis
+- [Future change.md](../../Future%20change.md) — original tradeoff analysis
 - `api/routers/chat.py`, `tests/test_chat_stream_threading.py`

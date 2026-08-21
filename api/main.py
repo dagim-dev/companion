@@ -1,5 +1,3 @@
-import traceback
-
 import config
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,7 +6,7 @@ from fastapi.responses import JSONResponse
 import logging
 
 from logging_config import configure_logging
-from memory import init_db
+from memory import get_legacy_personal_memory_status, init_db
 from memory_extraction_worker import start_worker, stop_worker
 from api.routers import (
     auth,
@@ -40,7 +38,16 @@ def startup() -> None:
     configure_logging()
     init_db()
     start_worker()
-    logging.getLogger("api.main").info(
+    logger = logging.getLogger("api.main")
+    legacy_status = get_legacy_personal_memory_status()
+    if legacy_status["status"] != "clean":
+        logger.warning(
+            "legacy_personal_memory_status=%s tables=%s rows=%s",
+            legacy_status["status"],
+            ",".join(legacy_status["legacy_tables"]),
+            legacy_status["record_count"],
+        )
+    logger.info(
         "NOVA API ready — persistence logs appear on POST /v1/chat (not on /health or /v1/profile)"
     )
 
@@ -52,12 +59,13 @@ async def shutdown() -> None:
 
 @app.exception_handler(Exception)
 async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+    logger = logging.getLogger("api.main")
     if isinstance(exc, HTTPException):
         return JSONResponse(
             status_code=exc.status_code,
             content={"detail": exc.detail},
         )
-    traceback.print_exc()
+    logger.exception("unhandled_request_exception path=%s", request.url.path)
     return JSONResponse(
         status_code=500,
         content={
