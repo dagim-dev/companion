@@ -66,6 +66,7 @@ class PreparedTurn:
     companion_prefs: Any = None
     learned_preference_memories: list = field(default_factory=list)
     effective_personality: Any = None
+    user_message_id: Optional[int] = None
 
 
 def prepare_turn(state: NovaState, user_input: str) -> Optional[PreparedTurn]:
@@ -199,6 +200,24 @@ def prepare_turn(state: NovaState, user_input: str) -> Optional[PreparedTurn]:
     )
 
 
+def persist_user_turn(state: NovaState, turn: PreparedTurn) -> int:
+    """Persist the user message and enqueue extraction. Idempotent per turn."""
+    if turn.user_message_id is not None:
+        return turn.user_message_id
+
+    message_id = create_conversation_message(
+        state.user_id,
+        "user",
+        turn.user_input,
+    )
+    enqueue_extraction_job(
+        message_id=message_id,
+        message_content=turn.user_input,
+    )
+    turn.user_message_id = message_id
+    return message_id
+
+
 def finalize_response(
     state: NovaState,
     turn: PreparedTurn,
@@ -229,19 +248,10 @@ def finalize_response(
         response += f"\n\n{turn.followup}"
 
     state.conversation.append({"role": "assistant", "content": response})
-    user_message_id = create_conversation_message(
-        state.user_id,
-        "user",
-        turn.user_input,
-    )
     create_conversation_message(
         state.user_id,
         "assistant",
         response,
-    )
-    enqueue_extraction_job(
-        message_id=user_message_id,
-        message_content=turn.user_input,
     )
     _maybe_create_episode(state, turn)
     _maybe_persist_runtime(state)
@@ -349,6 +359,7 @@ def process_message(
             "response_time_s": round(time.time() - start_time, 2),
         }
 
+    persist_user_turn(state, turn)
     raw_response = chat(**_llm_kwargs(state, turn), echo_to_terminal=echo_to_terminal)
     response = finalize_response(state, turn, raw_response)
 

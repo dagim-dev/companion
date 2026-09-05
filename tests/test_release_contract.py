@@ -16,8 +16,11 @@ from api.routers import chat as chat_router  # noqa: E402
 from api.routers import health as health_router  # noqa: E402
 from api.routers import voice as voice_router  # noqa: E402
 from api.schemas import MAX_CHAT_MESSAGE_CHARS, MAX_TTS_TEXT_CHARS  # noqa: E402
-from memory import create_conversation_message, init_db  # noqa: E402
+from llm import LLMRequestError  # noqa: E402
+from memory import create_conversation_message, get_recent_conversations, init_db  # noqa: E402
 from memory_scope import user_scope  # noqa: E402
+from session_state import NovaState  # noqa: E402
+import message_processor as mp_module  # noqa: E402
 
 
 class ReleaseContractTests(unittest.TestCase):
@@ -82,6 +85,51 @@ class ReleaseContractTests(unittest.TestCase):
             )
 
         self.assertEqual(response.status_code, 422)
+
+    def test_sync_chat_returns_503_when_llm_fails_without_assistant_row(self):
+        state = NovaState(user_id="user-123")
+        app.dependency_overrides[get_state] = lambda: state
+
+        def fake_prepare(_state, user_input):
+            _state.conversation.append({"role": "user", "content": user_input})
+            return mp_module.PreparedTurn(
+                user_input=user_input,
+                intent="help_request",
+                emotion="neutral",
+                intensity=0.2,
+                profile={},
+                emotional_profile={},
+                behavior={},
+                patterns={},
+                context={},
+                insights={},
+                cognition=mock.Mock(),
+                initiative_question=None,
+                followup=None,
+            )
+
+        with (
+            mock.patch.object(chat_router, "is_onboarding_complete", return_value=True),
+            mock.patch.object(mp_module, "prepare_turn", side_effect=fake_prepare),
+            mock.patch.object(
+                mp_module,
+                "chat",
+                side_effect=LLMRequestError("OpenAI chat stream failed"),
+            ),
+        ):
+            with user_scope("user-123"):
+                response = self.client.post(
+                    "/v1/chat",
+                    json={"message": "hello there"},
+                )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["detail"], chat_router.CHAT_UNAVAILABLE_DETAIL)
+        with user_scope("user-123"):
+            self.assertEqual(
+                get_recent_conversations("user-123"),
+                [{"role": "user", "content": "hello there"}],
+            )
 
     def test_tts_rejects_text_above_release_limit(self):
         response = self.client.post(

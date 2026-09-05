@@ -11,6 +11,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 from api.routers import chat as chat_router  # noqa: E402
 from cognition_engine import CognitionResult  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
+from llm import LLMRequestError  # noqa: E402
 from memory_scope import current_user_id  # noqa: E402
 from turn_guard import UserTurnBusyError, acquire_user_turn  # noqa: E402
 
@@ -98,6 +99,110 @@ class ChatStreamThreadingTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             call_order,
             ["prepare", "stream:hel", "stream:lo", "finalize"],
+        )
+
+    async def test_stream_persists_user_turn_before_streaming(self):
+        call_order: list[str] = []
+        state = SimpleNamespace(user_id="user-123")
+
+        def fake_prepare(_state, message):
+            call_order.append("prepare")
+            return chat_router.PreparedTurn(
+                user_input=message,
+                intent="help_request",
+                emotion="neutral",
+                intensity=0.2,
+                profile={},
+                emotional_profile={},
+                behavior={},
+                patterns={},
+                context={},
+                insights={},
+                cognition=_cognition(),
+                initiative_question=None,
+                followup=None,
+            )
+
+        def fake_persist(_state, _turn):
+            call_order.append("persist_user")
+
+        def fake_stream(_state, _turn, *, echo_to_terminal=False):
+            call_order.append("stream")
+            yield "ok"
+
+        def fake_finalize(_state, _turn, raw_response):
+            call_order.append("finalize")
+            return raw_response
+
+        with (
+            patch.object(chat_router, "prepare_turn", fake_prepare),
+            patch.object(chat_router, "persist_user_turn", fake_persist),
+            patch.object(chat_router, "stream_llm_tokens", fake_stream),
+            patch.object(chat_router, "finalize_response", fake_finalize),
+        ):
+            raw_events = [
+                event
+                async for event in chat_router._chat_stream_events(state, "hello")
+            ]
+
+        events = [
+            json.loads(event.removeprefix("data: ").strip()) for event in raw_events
+        ]
+        self.assertEqual(events[-1]["type"], "done")
+        self.assertEqual(call_order, ["prepare", "persist_user", "stream", "finalize"])
+
+    async def test_stream_llm_failure_emits_error_without_finalize(self):
+        state = SimpleNamespace(user_id="user-123")
+        finalize_called = False
+
+        def fake_prepare(_state, message):
+            return chat_router.PreparedTurn(
+                user_input=message,
+                intent="help_request",
+                emotion="neutral",
+                intensity=0.2,
+                profile={},
+                emotional_profile={},
+                behavior={},
+                patterns={},
+                context={},
+                insights={},
+                cognition=_cognition(),
+                initiative_question=None,
+                followup=None,
+            )
+
+        def fake_stream(_state, _turn, *, echo_to_terminal=False):
+            yield "hel"
+            raise LLMRequestError("OpenAI chat stream failed")
+
+        def fake_finalize(*_args, **_kwargs):
+            nonlocal finalize_called
+            finalize_called = True
+            return "should not run"
+
+        with (
+            patch.object(chat_router, "prepare_turn", fake_prepare),
+            patch.object(chat_router, "persist_user_turn"),
+            patch.object(chat_router, "stream_llm_tokens", fake_stream),
+            patch.object(chat_router, "finalize_response", fake_finalize),
+        ):
+            raw_events = [
+                event
+                async for event in chat_router._chat_stream_events(state, "hello")
+            ]
+
+        self.assertFalse(finalize_called)
+        self.assertEqual(
+            [json.loads(event.removeprefix("data: ").strip()) for event in raw_events],
+            [
+                {"type": "token", "content": "hel"},
+                {
+                    "type": "error",
+                    "code": chat_router.STREAM_ERROR_CODE,
+                    "message": chat_router.STREAM_ERROR_MESSAGE,
+                },
+            ],
         )
 
     async def test_stream_tokens_are_requested_as_sse_consumer_advances(self):

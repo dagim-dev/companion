@@ -9,11 +9,13 @@ from fastapi.responses import StreamingResponse
 from api.deps import get_current_user, get_state
 from api.schemas import ChatRequest, ChatResponse, RecentConversationMessage
 from companion_prefs import is_onboarding_complete
+from llm import LLMRequestError
 from memory import get_recent_conversations
 from memory_scope import user_scope
 from message_processor import (
     PreparedTurn,
     finalize_response,
+    persist_user_turn,
     prepare_turn,
     process_message,
     stream_llm_tokens,
@@ -32,6 +34,10 @@ TURN_IN_PROGRESS_DETAIL = {
 }
 STREAM_ERROR_CODE = "stream_failed"
 STREAM_ERROR_MESSAGE = "NOVA could not finish that streamed reply. Please retry."
+CHAT_UNAVAILABLE_DETAIL = {
+    "code": "llm_unavailable",
+    "message": "NOVA could not finish that reply. Please retry.",
+}
 
 
 def _require_onboarding(user_id: str) -> None:
@@ -147,6 +153,13 @@ async def _chat_stream_events_scoped(
         )
         return
 
+    await _to_thread_with_user_scope(
+        state.user_id,
+        persist_user_turn,
+        state,
+        turn,
+    )
+
     raw_parts: list[str] = []
     async for token in _stream_llm_tokens_threaded(state, turn):
         raw_parts.append(token)
@@ -187,6 +200,9 @@ def chat_endpoint(
                 result = process_message(state, body.message, echo_to_terminal=False)
     except HTTPException:
         raise
+    except LLMRequestError as exc:
+        logger.exception("chat_request_llm_failed user_id=%s", state.user_id)
+        raise HTTPException(status_code=503, detail=CHAT_UNAVAILABLE_DETAIL) from exc
     except Exception as exc:
         logger.exception("chat_request_failed user_id=%s", state.user_id)
         raise HTTPException(status_code=500, detail=str(exc)) from exc

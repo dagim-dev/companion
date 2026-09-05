@@ -9,6 +9,7 @@ os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
 import message_processor as mp  # noqa: E402
 from cognition_engine import CognitionResult  # noqa: E402
 from conversation_summarizer import EpisodeSummary  # noqa: E402
+from llm import LLMRequestError  # noqa: E402
 
 
 def _cognition():
@@ -330,7 +331,7 @@ class MemoryExtractionQueueFlowTests(unittest.TestCase):
         extractor.assert_not_called()
         enqueue.assert_not_called()
 
-    def test_finalize_response_persists_messages_and_enqueues_extraction_job(self):
+    def test_finalize_response_persists_only_assistant_row(self):
         state = SimpleNamespace(
             user_id="user-123",
             conversation=[],
@@ -340,6 +341,7 @@ class MemoryExtractionQueueFlowTests(unittest.TestCase):
             personality_state=SimpleNamespace(snapshot=lambda: {}),
         )
         turn = _turn()
+        turn.user_message_id = 42
         created_messages = []
 
         def fake_create_message(user_id, role, content):
@@ -358,15 +360,59 @@ class MemoryExtractionQueueFlowTests(unittest.TestCase):
         self.assertEqual(response, "Final answer")
         self.assertEqual(
             created_messages,
-            [
-                ("user-123", "user", "hello"),
-                ("user-123", "assistant", "Final answer"),
-            ],
+            [("user-123", "assistant", "Final answer")],
         )
-        enqueue.assert_called_once_with(
-            message_id=1,
-            message_content="hello",
+        enqueue.assert_not_called()
+
+    def test_persist_user_turn_writes_user_and_enqueues_once(self):
+        state = SimpleNamespace(user_id="user-123")
+        turn = _turn()
+        created_messages = []
+
+        def fake_create_message(user_id, role, content):
+            created_messages.append((user_id, role, content))
+            return 7
+
+        with mock.patch.object(mp, "create_conversation_message", side_effect=fake_create_message), \
+                mock.patch.object(mp, "enqueue_extraction_job") as enqueue:
+            message_id = mp.persist_user_turn(state, turn)
+
+        self.assertEqual(message_id, 7)
+        self.assertEqual(turn.user_message_id, 7)
+        self.assertEqual(created_messages, [("user-123", "user", "hello")])
+        enqueue.assert_called_once_with(message_id=7, message_content="hello")
+
+    def test_persist_user_turn_is_idempotent(self):
+        state = SimpleNamespace(user_id="user-123")
+        turn = _turn()
+        turn.user_message_id = 11
+
+        with mock.patch.object(mp, "create_conversation_message") as create_message, \
+                mock.patch.object(mp, "enqueue_extraction_job") as enqueue:
+            message_id = mp.persist_user_turn(state, turn)
+
+        self.assertEqual(message_id, 11)
+        create_message.assert_not_called()
+        enqueue.assert_not_called()
+
+    def test_process_message_llm_failure_persists_user_without_assistant(self):
+        state = SimpleNamespace(
+            user_id="user-123",
+            conversation=[],
+            turn_count=0,
         )
+        turn = _turn()
+
+        with mock.patch.object(mp, "prepare_turn", return_value=turn), \
+                mock.patch.object(mp, "persist_user_turn", return_value=5) as persist_user, \
+                mock.patch.object(mp, "_llm_kwargs", return_value={}), \
+                mock.patch.object(mp, "chat", side_effect=LLMRequestError("stream failed")), \
+                mock.patch.object(mp, "finalize_response") as finalize:
+            with self.assertRaises(LLMRequestError):
+                mp.process_message(state, "hello")
+
+        persist_user.assert_called_once_with(state, turn)
+        finalize.assert_not_called()
 
 
 if __name__ == "__main__":

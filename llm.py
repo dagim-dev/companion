@@ -1,5 +1,5 @@
 # llm.py
-import traceback
+import logging
 from typing import Iterator
 
 from openai import OpenAI
@@ -12,6 +12,12 @@ client = OpenAI(
     api_key=OPENAI_API_KEY,
     timeout=60.0,
 )
+
+logger = logging.getLogger(__name__)
+
+
+class LLMRequestError(RuntimeError):
+    """Raised when the OpenAI chat completion request or stream fails."""
 
 
 def build_system_message(
@@ -195,13 +201,6 @@ def _compress_conversation_for_llm(
     return [compressed_prefix] + conversation[-max_recent:]
 
 
-FALLBACK_RESPONSE = (
-    "Apologies. "
-    "The connection to my higher cognitive functions "
-    "appears temporarily unstable."
-)
-
-
 def chat_stream(
     conversation,
     profile,
@@ -258,10 +257,9 @@ def chat_stream(
         if echo_to_terminal:
             print()
 
-    except Exception:
-        print("[LLM ERROR]")
-        traceback.print_exc()
-        yield FALLBACK_RESPONSE
+    except Exception as exc:
+        logger.exception("OpenAI chat stream failed")
+        raise LLMRequestError("OpenAI chat stream failed") from exc
 
 
 def chat(

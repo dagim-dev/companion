@@ -1,6 +1,7 @@
 # main.py
 import os
 
+from llm import LLMRequestError
 from logging_config import configure_logging
 from companion_prefs import complete_onboarding, is_onboarding_complete
 from memory import init_db, set_profile
@@ -39,7 +40,14 @@ def main():
             if user_input.lower() == "exit":
                 break
 
-            result = process_message(state, user_input, echo_to_terminal=True)
+            try:
+                result = process_message(state, user_input, echo_to_terminal=True)
+            except LLMRequestError:
+                print(
+                    "AI: NOVA could not finish that reply. "
+                    "Your message was saved — please retry.\n"
+                )
+                continue
 
             if result.get("intent") != "uncertain" or not result.get("skipped"):
                 print(f"[DEBUG] Intent: {result.get('intent', 'unknown')}")
