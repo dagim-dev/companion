@@ -25,6 +25,7 @@ flowchart TD
 
     subgraph sync [Synchronous turn]
         PT[prepare_turn]
+        PUT[persist_user_turn]
         LLM[llm.chat / chat_stream]
         FR[finalize_response]
     end
@@ -36,7 +37,7 @@ flowchart TD
     end
 
     CLI --> MS
-    Web --> JWT --> MS --> SS --> PT --> LLM --> FR
+    Web --> JWT --> MS --> SS --> PT --> PUT --> LLM --> FR
     FR --> JOB --> W --> LP
     LP -.->|next turn| PT
 ```
@@ -175,7 +176,7 @@ Pydantic request/response models for all routers. Validation literals for slider
 
 1. **What:** Central hub for every chat turn.
 2. **Why:** Keeps routers and CLI thin; one place to trace the pipeline.
-3. **Exports:** `PreparedTurn`, `prepare_turn`, `finalize_response`, `process_message`, `stream_llm_tokens`.
+3. **Exports:** `PreparedTurn`, `prepare_turn`, `persist_user_turn`, `finalize_response`, `process_message`, `stream_llm_tokens`.
 
 **`prepare_turn`** (pre-LLM):
 
@@ -188,9 +189,11 @@ Pydantic request/response models for all routers. Validation literals for slider
 7. Optional curiosity question + episodic follow-up
 8. Returns `PreparedTurn` or `None` (uncertain intent)
 
-**`finalize_response`:** response_controller → rhythm → meta_cognition → append initiative/followup → persist messages → enqueue extraction job → maybe episode (every 12 turns) → runtime personality persist.
+**`persist_user_turn`:** `create_conversation_message(role="user")` → `enqueue_extraction_job`. Runs before the LLM call so the user's message survives an LLM failure. Idempotent per turn via `PreparedTurn.user_message_id`.
 
-**`process_message`:** prepare → `llm.chat` → finalize.
+**`finalize_response`:** response_controller → rhythm → meta_cognition → append initiative/followup → `create_conversation_message(role="assistant")` → maybe episode (every 12 turns) → runtime personality persist. Only runs after a successful LLM stream, so no assistant row is written on `LLMRequestError`.
+
+**`process_message`:** prepare → `persist_user_turn` → `llm.chat` → finalize.
 
 ### [`config.py`](../config.py)
 
@@ -205,7 +208,7 @@ Single env loader: OpenAI, JWT, DB path, CORS, voice flags. Everything imports f
 
 ### [`llm.py`](../llm.py)
 
-Builds system message ([`prompt_builder`](../prompt_builder.py) + [`prompts/core`](../prompts/core.py)), compresses old turns into a summary message, `chat` / `chat_stream`. Fallback string on API failure.
+Builds system message ([`prompt_builder`](../prompt_builder.py) + [`prompts/core`](../prompts/core.py)), compresses old turns into a summary message, `chat` / `chat_stream`. On API failure, logs via `logger.exception(...)` and raises `LLMRequestError`; callers ([`api/routers/chat.py`](../api/routers/chat.py), [`main.py`](../main.py)) surface a user-visible error and skip assistant-row persistence.
 
 ### [`cognition_engine.py`](../cognition_engine.py)
 
@@ -434,7 +437,7 @@ Flat imports at repo root (no package subfolders except `api/`, `prompts/`, `mig
 ## How to navigate as a new developer
 
 1. **Run:** [README.md](../README.md) → `uvicorn api:app` + `frontend npm run dev` OR `python main.py` CLI.
-2. **One turn:** `message_processor.prepare_turn` → `llm.chat` → `finalize_response`.
+2. **One turn:** `message_processor.prepare_turn` → `persist_user_turn` → `llm.chat` → `finalize_response`.
 3. **HTTP:** `api/routers/chat.py` wraps same pipeline with JWT + onboarding gate.
 4. **Personality:** onboarding in `companion_prefs` → async `learned_preferences` → `personality_composer`.
 5. **Scale/concurrency:** [Future change.md](../Future%20change.md) + ADR 0002 before multi-user load.

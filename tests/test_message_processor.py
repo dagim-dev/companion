@@ -402,16 +402,22 @@ class MemoryExtractionQueueFlowTests(unittest.TestCase):
             turn_count=0,
         )
         turn = _turn()
+        created_messages = []
+
+        def fake_create_message(user_id, role, content):
+            created_messages.append((user_id, role, content))
+            return len(created_messages)
 
         with mock.patch.object(mp, "prepare_turn", return_value=turn), \
-                mock.patch.object(mp, "persist_user_turn", return_value=5) as persist_user, \
                 mock.patch.object(mp, "_llm_kwargs", return_value={}), \
                 mock.patch.object(mp, "chat", side_effect=LLMRequestError("stream failed")), \
+                mock.patch.object(mp, "create_conversation_message", side_effect=fake_create_message), \
+                mock.patch.object(mp, "enqueue_extraction_job"), \
                 mock.patch.object(mp, "finalize_response") as finalize:
             with self.assertRaises(LLMRequestError):
                 mp.process_message(state, "hello")
 
-        persist_user.assert_called_once_with(state, turn)
+        self.assertEqual(created_messages, [("user-123", "user", "hello")])
         finalize.assert_not_called()
 
 

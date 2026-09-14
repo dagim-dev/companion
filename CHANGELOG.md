@@ -30,6 +30,8 @@ Version numbers below are inferred from git history — the repo has no release 
 - `VOICE_ENABLED` defaults to `false`
 - Next.js API rewrites are development-only; production requires `NEXT_PUBLIC_API_URL`
 - Streaming chat failures emit structured SSE `error` events; duplicate turns return `409 turn_in_progress`
+- Assistant conversation rows are only persisted after a successful OpenAI stream; user rows are persisted before the call so a mid-turn failure leaves history clean instead of writing a canned fallback (`llm.py`, `message_processor.py`)
+- New `LLMRequestError` raised by `llm.chat_stream` on OpenAI failure; sync `POST /v1/chat` returns `503 {"code": "llm_unavailable"}` and SSE `POST /v1/chat/stream` emits `{"type":"error","code":"stream_failed"}` instead of streaming fallback text (`api/routers/chat.py`, `main.py`)
 
 ### Removed
 
@@ -37,6 +39,7 @@ Version numbers below are inferred from git history — the repo has no release 
 - Legacy `personal_memories` runtime support — V4 now quarantines old rows under `legacy_personal_memories_v3*` instead of migrating them into the active memory contract
 - Embedding-based personal memory recall — removed from `memory_recall.py`; style recall now reads `learned_preferences` only
 - Personal memories section removed from LLM system prompt (`llm.py`); `personal_memories` arg dropped from `chat_stream` / `build_chat_messages`
+- Hardcoded fallback reply string in `llm.py` — replaced by structured error signalling (`LLMRequestError`)
 - `clear_learned_style()` no longer deletes `personal_memories` rows (`companion_prefs.py`)
 
 ## [0.4.0] - 2026-06-19
