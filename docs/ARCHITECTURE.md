@@ -77,19 +77,11 @@ flowchart TD
 2. **Why:** Track what changed between versions.
 3. **Connects:** Unreleased: NOVA rebrand, removal of `personal_memory.py`. v0.4: personality composer, async extraction, v2 prefs.
 
-#### [`Future change.md`](../Future%20change.md)
+#### [`requirements.txt`](../requirements.txt) and [`requirements.lock.txt`](../requirements.lock.txt)
 
-1. **What:** Living roadmap — SSE threading fix, scaling tiers, SQLite/`NovaState` concurrency limits.
-2. **Why:** Read before scaling beyond single-user dev.
-3. **Connects:** Documents [`api/routers/chat.py`](../api/routers/chat.py) `asyncio.to_thread` pattern; ADR 0002.
-
-#### [`benchmarks.md`](../benchmarks.md)
-
-Manual latency log (~1.3–1.8s per turn). Informal; not CI-gated.
-
-#### [`requirements.txt`](../requirements.txt)
-
-Python deps: FastAPI, uvicorn, openai, vaderSentiment, numpy, PyJWT, passlib, etc.
+1. **What:** `requirements.txt` lists loose top-level Python constraints (edited by hand when bumping deps). `requirements.lock.txt` is a full pinned snapshot from `pip freeze` on Python 3.11 for reproducible installs.
+2. **Why:** Floating `>=` installs can drift across months; the lock matches the last known-good backend test run.
+3. **Connects:** README install uses the lock file; regenerate the lock from a clean venv after changing `requirements.txt`.
 
 #### [`.env.example`](../.env.example)
 
@@ -280,6 +272,13 @@ Thread-safe 1-hour TTL cache of `NovaState` (conversation, turn_count, sub-engin
 | [`voice_capabilities.py`](../voice_capabilities.py) | Feature gating from `VOICE_ENABLED` env |
 | [`voice_service.py`](../voice_service.py) | Whisper STT + ElevenLabs TTS |
 | [`logging_config.py`](../logging_config.py) | Shared logging setup for CLI and API |
+| [`turn_guard.py`](../turn_guard.py) | Per-user turn lease; rejects overlapping sync/stream chat with `UserTurnBusyError` (HTTP 409) |
+
+### [`turn_guard.py`](../turn_guard.py)
+
+1. **What:** In-process mutex keyed by `user_id` so only one chat turn runs at a time per user.
+2. **Why:** `NovaState` and the turn pipeline are not safe under overlapping requests for the same user; streaming uses `asyncio.to_thread` (see ADR 0002).
+3. **Connects:** [`api/routers/chat.py`](../api/routers/chat.py) calls `acquire_user_turn`; [`tests/test_chat_stream_threading.py`](../tests/test_chat_stream_threading.py) covers lease release on stream close.
 
 ---
 
@@ -290,7 +289,7 @@ Thread-safe 1-hour TTL cache of `NovaState` (conversation, turn_count, sub-engin
 1. **What:** Static `NOVA_CORE` system prompt — identity, warmth, addressing user, substance guidelines.
 2. **Why:** Immutable character layer; user-specific data comes from elsewhere.
 3. **Connects:** [`prompt_builder.py`](../prompt_builder.py) prepends this; QA scripts validate no hardcoded user names.
-4. **Note:** No `prompts/__init__.py` — import `prompts.core` directly.
+4. **Note:** `prompts/__init__.py` exists (empty); callers import `prompts.core` directly.
 
 ---
 
@@ -430,7 +429,7 @@ Flat imports at repo root (no package subfolders except `api/`, `prompts/`, `mig
 - **Cognition:** `classifier.py`, `cognition_engine.py`, `decision_engine.py`, `response_controller.py`, `rhythm_engine.py`, `curiosity_engine.py`, `internal_state.py`, `personality_state.py`, `self_perception.py`, `meta_cognition.py`, `personality_composer.py`
 - **Memory:** `memory.py`, `memory_scope.py`, all `memory_*` modules, `learned_preferences.py`, `companion_prefs.py`, `embedding_engine.py`, `conversation_summarizer.py`, `persistence_policy.py`
 - **Auth/voice:** `auth_jwt.py`, `auth_store.py`, `voice_capabilities.py`, `voice_service.py`
-- **Infra:** `config.py`, `logging_config.py`, `state_store.py`, `session_state.py`
+- **Infra:** `config.py`, `logging_config.py`, `state_store.py`, `session_state.py`, `turn_guard.py`
 
 ---
 
@@ -440,7 +439,7 @@ Flat imports at repo root (no package subfolders except `api/`, `prompts/`, `mig
 2. **One turn:** `message_processor.prepare_turn` → `persist_user_turn` → `llm.chat` → `finalize_response`.
 3. **HTTP:** `api/routers/chat.py` wraps same pipeline with JWT + onboarding gate.
 4. **Personality:** onboarding in `companion_prefs` → async `learned_preferences` → `personality_composer`.
-5. **Scale/concurrency:** [Future change.md](../Future%20change.md) + ADR 0002 before multi-user load.
+5. **Scale/concurrency:** [ADR 0002](decisions/0002-async-sse-thread-offload.md) (`asyncio.to_thread`, thread-pool and SQLite limits) and [`turn_guard.py`](../turn_guard.py) before expecting multi-user or overlapping turns.
 
 ---
 

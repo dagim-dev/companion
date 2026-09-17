@@ -5,10 +5,10 @@ load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-# Calm British male — set in ElevenLabs dashboard or env
+# Default ElevenLabs voice ID when unset; override via ELEVENLABS_VOICE_ID in .env
 ELEVENLABS_VOICE_ID = os.getenv(
     "ELEVENLABS_VOICE_ID",
-    "cgSgspJ2msm6clMCkdW9",  # Jessica — override via .env
+    "cgSgspJ2msm6clMCkdW9",
 )
 
 JWT_SECRET = os.getenv("JWT_SECRET")

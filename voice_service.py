@@ -1,4 +1,4 @@
-import traceback
+import logging
 from io import BytesIO
 
 import httpx
@@ -6,6 +6,8 @@ from openai import OpenAI
 
 from config import ELEVENLABS_API_KEY, ELEVENLABS_VOICE_ID, OPENAI_API_KEY
 from voice_capabilities import VoiceUnavailableError, require_stt, require_tts
+
+logger = logging.getLogger(__name__)
 
 MIN_AUDIO_BYTES = 256
 
@@ -50,8 +52,7 @@ def transcribe_audio(file_bytes: bytes, filename: str = "audio.webm") -> str:
         )
         return (result.text or "").strip()
     except Exception as exc:
-        print("[TRANSCRIBE ERROR]")
-        traceback.print_exc()
+        logger.exception("OpenAI transcription failed")
         raise VoiceUnavailableError(
             "Transcription failed. Check audio format and OPENAI_API_KEY.",
             reason="transcribe_failed",
@@ -97,8 +98,10 @@ def synthesize_speech(text: str) -> bytes:
             response.raise_for_status()
             return response.content
     except httpx.HTTPStatusError as exc:
-        print("[TTS ERROR]")
-        traceback.print_exc()
+        logger.exception(
+            "ElevenLabs TTS HTTP error: status=%s",
+            exc.response.status_code,
+        )
         api_message = _elevenlabs_error_message(exc.response)
         if exc.response.status_code in (401, 403):
             if api_message:
@@ -121,8 +124,7 @@ def synthesize_speech(text: str) -> bytes:
             reason="tts_failed",
         ) from exc
     except Exception as exc:
-        print("[TTS ERROR]")
-        traceback.print_exc()
+        logger.exception("ElevenLabs TTS request failed")
         raise VoiceUnavailableError(
             "Text-to-speech failed. Check ELEVENLABS_API_KEY and voice ID.",
             reason="tts_failed",

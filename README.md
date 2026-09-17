@@ -30,9 +30,20 @@ cd companion
 python3.11 -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-pip install -r requirements.txt
+pip install -r requirements.lock.txt
 cp .env.example .env        # edit with your API keys
 ```
+
+**Backend dependencies:** `requirements.lock.txt` is the pinned snapshot used for normal installs (reproducible after months away). Edit loose top-level constraints in `requirements.txt` only when you intentionally change dependencies; then regenerate the lock from a clean Python 3.11 venv:
+
+```bash
+python3.11 -m venv /tmp/nova-lockgen && source /tmp/nova-lockgen/bin/activate
+pip install -r requirements.txt
+pip freeze | sort > requirements.lock.txt
+deactivate
+```
+
+The frontend uses `frontend/package-lock.json` the same way (`npm install` respects the committed lock).
 
 ## Configure environment
 
@@ -171,6 +182,7 @@ If you use a custom `DATABASE_PATH`, back up that file instead.
 
 ```bash
 source .venv/bin/activate
+pip install pytest   # test runner only; not part of runtime requirements.lock.txt
 python -m pytest tests/ -q
 cd frontend && npm run lint && npm run build
 ```

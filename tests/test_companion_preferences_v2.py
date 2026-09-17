@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from unittest import mock
 
 os.environ.setdefault("OPENAI_API_KEY", "test-openai-key")
@@ -79,7 +80,10 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
         conn = get_connection()
         try:
             row = conn.execute(
-                "SELECT prefs_json FROM companion_preferences WHERE user_id = ?",
+                """
+                SELECT prefs_json, updated_at FROM companion_preferences
+                WHERE user_id = ?
+                """,
                 ("user-123",),
             ).fetchone()
         finally:
@@ -90,6 +94,13 @@ class CompanionPreferencesV2Tests(unittest.TestCase):
         self.assertIn("baseline", stored)
         self.assertIn("baseline_sliders", stored)
         self.assertNotIn("role_id", stored["baseline"])
+
+        parsed_updated = datetime.fromisoformat(row["updated_at"])
+        self.assertIsNotNone(parsed_updated.tzinfo)
+        self.assertEqual(
+            parsed_updated.utcoffset(),
+            timezone.utc.utcoffset(parsed_updated),
+        )
 
     def test_runtime_json_persists_runtime_state_without_personality_slider_drift(self):
         with user_scope("user-123"):

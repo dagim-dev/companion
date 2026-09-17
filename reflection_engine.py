@@ -7,6 +7,7 @@ import random
 from embedding_engine import create_embedding
 import json
 
+from reflection_content import build_bounded_reflection_content
 
 REFLECTION_TOPICS = {
     "school": ["school", "exam", "assignment", "grades", "study"],
@@ -66,11 +67,8 @@ def detect_reflection_topic(user_input):
 
 def update_reflection(topic, content, emotion, intensity):
     uid = require_user_id()
-    conn = get_connection()
-    cursor = conn.cursor()
 
     embedding = create_embedding(content)
-
     embedding_json = json.dumps(embedding)
 
     salience = 0.35
@@ -93,66 +91,81 @@ def update_reflection(topic, content, emotion, intensity):
 
     salience = min(salience, 1.0)
 
-    cursor.execute(
-        "SELECT * FROM reflections WHERE topic = ? AND user_id = ?",
-        (topic, uid),
-    )
+    conn = get_connection()
+    cursor = conn.cursor()
 
-    existing = cursor.fetchone()
+    try:
+        cursor.execute("BEGIN IMMEDIATE")
 
-    if existing:
         cursor.execute(
-            """
-        UPDATE reflections
-        SET reflection_count = reflection_count + 1,
-            salience = MIN(salience + 0.08, 1.0),
-            content = content || ' || ' || ?,
-            embedding = ?,
-            intensity = MAX(intensity, ?),
-            emotion = ?,
-            last_mentioned = ?
-        WHERE topic = ? AND user_id = ?
-        """,
-            (
-                content,
-                embedding_json,
-                intensity,
-                emotion,
-                datetime.now(),
-                topic,
-                uid,
-            ),
+            "SELECT content FROM reflections WHERE topic = ? AND user_id = ?",
+            (topic, uid),
         )
 
-    else:
-        cursor.execute(
-            """
-        INSERT INTO reflections
-        (
-            user_id,
-            topic,
-            content,
-            embedding,
-            emotion,
-            intensity,
-            salience,
-            created_at,
-            last_mentioned
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+        existing = cursor.fetchone()
+        now = datetime.now()
+
+        if existing:
+            bounded_content = build_bounded_reflection_content(
+                existing["content"],
+                content,
+            )
+            cursor.execute(
+                """
+            UPDATE reflections
+            SET reflection_count = reflection_count + 1,
+                salience = MIN(salience + 0.08, 1.0),
+                content = ?,
+                embedding = ?,
+                intensity = MAX(intensity, ?),
+                emotion = ?,
+                last_mentioned = ?
+            WHERE topic = ? AND user_id = ?
+            """,
+                (
+                    bounded_content,
+                    embedding_json,
+                    intensity,
+                    emotion,
+                    now,
+                    topic,
+                    uid,
+                ),
+            )
+        else:
+            bounded_content = build_bounded_reflection_content(None, content)
+            cursor.execute(
+                """
+            INSERT INTO reflections
             (
-                uid,
+                user_id,
                 topic,
                 content,
-                embedding_json,
+                embedding,
                 emotion,
                 intensity,
                 salience,
-                datetime.now(),
-                datetime.now(),
-            ),
-        )
+                created_at,
+                last_mentioned
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    uid,
+                    topic,
+                    bounded_content,
+                    embedding_json,
+                    emotion,
+                    intensity,
+                    salience,
+                    now,
+                    now,
+                ),
+            )
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from memory import get_connection, set_profile
@@ -283,7 +283,7 @@ def is_onboarding_complete(user_id: str | None = None) -> bool:
 def save_companion_preferences(prefs: CompanionPreferences) -> None:
     prefs.sliders.clamp()
     uid = prefs.user_id or require_user_id()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     prefs.updated_at = now
 
     runtime_str = None

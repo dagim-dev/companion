@@ -38,7 +38,8 @@ class DevMemoryRouterTests(unittest.TestCase):
             job_id = enqueue_extraction_job(message_id, "remember this")
             mark_job_failed(job_id, "LLM timeout")
 
-        response = TestClient(app).get("/v1/dev/memory-extraction/health")
+        with TestClient(app) as client:
+            response = client.get("/v1/dev/memory-extraction/health")
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
@@ -48,7 +49,8 @@ class DevMemoryRouterTests(unittest.TestCase):
 
     def test_dev_route_is_hidden_in_production(self):
         with mock.patch.object(config, "ENV", "production"):
-            response = TestClient(app).get("/v1/dev/memory-extraction/health")
+            with TestClient(app) as client:
+                response = client.get("/v1/dev/memory-extraction/health")
 
         self.assertEqual(response.status_code, 404)
 

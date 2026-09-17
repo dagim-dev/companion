@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import config
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,19 +24,9 @@ from auth_jwt import get_jwt_secret
 
 get_jwt_secret()
 
-app = FastAPI(title="NOVA API", version="2.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=config.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.on_event("startup")
-def startup() -> None:
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     configure_logging()
     init_db()
     start_worker()
@@ -50,11 +42,21 @@ def startup() -> None:
     logger.info(
         "NOVA API ready — persistence logs appear on POST /v1/chat (not on /health or /v1/profile)"
     )
+    try:
+        yield
+    finally:
+        await stop_worker()
 
 
-@app.on_event("shutdown")
-async def shutdown() -> None:
-    await stop_worker()
+app = FastAPI(title="NOVA API", version="2.0.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.exception_handler(Exception)

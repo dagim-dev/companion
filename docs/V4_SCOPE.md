@@ -32,4 +32,4 @@ These ideas remain worthwhile, but are intentionally out of V4 so the release ca
 - **Interaction style calibration** — Complements async `learned_preferences` extraction with explicit, in-the-moment calibration when heuristics detect uncertainty or mismatch. Revisit after the core memory contract is stable.
 - **Situation-specific curiosity** — Replace fixed curiosity wording with policy-gated LLM wording only when needed. Revisit after V4 is deployed and existing follow-up behavior has been observed.
 
-The broader concurrency roadmap remains documented in [`Future change.md`](../Future%20change.md); it is not V4 scope.
+Broader concurrency and multi-user scaling work remains intentionally out of V4 scope and is not required for the release target above. See [ADR 0002](decisions/0002-async-sse-thread-offload.md) for the current single-process streaming model and its limits.

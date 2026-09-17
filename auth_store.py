@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from passlib.context import CryptContext
 
@@ -19,7 +19,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 def create_user(email: str, password: str) -> dict:
     user_id = str(uuid.uuid4())
     password_hash = hash_password(password)
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -63,7 +63,10 @@ def get_user_by_email(email: str) -> dict | None:
 def get_user_by_id(user_id: str) -> dict | None:
     conn = get_connection()
     cursor = conn.cursor()
-    try:
+    cursor.execute("PRAGMA table_info(users)")
+    user_cols = {row[1] for row in cursor.fetchall()}
+
+    if "onboarding_completed" in user_cols:
         cursor.execute(
             """
             SELECT id, email, password_hash, created_at, onboarding_completed
@@ -71,7 +74,7 @@ def get_user_by_id(user_id: str) -> dict | None:
             """,
             (user_id,),
         )
-    except Exception:
+    else:
         cursor.execute(
             "SELECT id, email, password_hash, created_at FROM users WHERE id = ?",
             (user_id,),

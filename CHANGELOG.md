@@ -10,6 +10,7 @@ Version numbers below are inferred from git history — the repo has no release 
 
 ### Added
 
+- `requirements.lock.txt` — pinned Python 3.11 backend dependency snapshot for reproducible installs (`requirements.txt` remains the loose constraint source)
 - `docs/V4_SCOPE.md` — living V4 scope tracker
 - `GET /v1/chat/recent` — restore recent transcript after refresh
 - `scripts/smoke_release_e2e.py` — production-like browser smoke test (register, onboard, stream, refresh, sign in again)
@@ -32,6 +33,9 @@ Version numbers below are inferred from git history — the repo has no release 
 - Streaming chat failures emit structured SSE `error` events; duplicate turns return `409 turn_in_progress`
 - Assistant conversation rows are only persisted after a successful OpenAI stream; user rows are persisted before the call so a mid-turn failure leaves history clean instead of writing a canned fallback (`llm.py`, `message_processor.py`)
 - New `LLMRequestError` raised by `llm.chat_stream` on OpenAI failure; sync `POST /v1/chat` returns `503 {"code": "llm_unavailable"}` and SSE `POST /v1/chat/stream` emits `{"type":"error","code":"stream_failed"}` instead of streaming fallback text (`api/routers/chat.py`, `main.py`)
+- Embedding and voice failures log through module loggers instead of `print()`/`traceback` on stdout; OpenAI embedding auth errors log at ERROR with an `OPENAI_API_KEY` hint while transient errors stay at WARNING and still return `None` (`embedding_engine.py`, `voice_service.py`)
+- Consolidated `memory_extraction_worker.py`: removed unused `process_next_job()`, extracted shared `_process_claimed_job()` helper, and rewrote worker tests to cover the production `process_next_available_job` / `_claim_any_due_job` path (multi-user FIFO ordering and retry timing)
+- README backend install instructions use `requirements.lock.txt` by default, with documented steps to regenerate the lock after editing `requirements.txt`
 
 ### Removed
 
@@ -105,7 +109,7 @@ Version numbers below are inferred from git history — the repo has no release 
 - `memory_followups.py` — gated follow-up question pipeline (policy in code, LLM for surface wording)
 - Async SSE threading — `asyncio.to_thread()` offloading in `api/routers/chat.py` for non-blocking streams
 - Migrations `003_conversations.py`, `004_followups.py`
-- `Future change.md` — SSE decision log and scaling roadmap
+- SSE scaling tradeoffs documented in ADR 0002 (standalone roadmap doc since removed)
 - Tests: `test_chat_stream_threading.py`, `test_memory_followups.py`, `test_internal_state.py`
 - Expanded `internal_state.py` and `state_store.py` for V3 session improvements
 - Conversation and followup tables in SQLite

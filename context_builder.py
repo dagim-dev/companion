@@ -27,6 +27,7 @@ def extract_user_state(emotional_profile):
 # MEMORY SELECTION
 # -------------------------
 def select_relevant_memory(profile, conversation):
+    # profile is unused; kept for API stability with build_context callers.
     memory = []
 
     # recent conversation (structured)
@@ -35,14 +36,6 @@ def select_relevant_memory(profile, conversation):
             "type": "recent_message",
             "content": msg
         })
-
-    # emotionally important past memories
-    for entry in profile.get("history", []):
-        if entry.get("intensity", 0) > 0.7:
-            memory.append({
-                "type": "emotional_memory",
-                "content": entry
-            })
 
     return memory[-5:]
 
@@ -92,12 +85,6 @@ def format_memory(memory):
     for item in memory:
         if item["type"] == "recent_message":
             lines.append(f"Recent: {item['content'].get('content', '')}")
-
-        elif item["type"] == "emotional_memory":
-            lines.append(
-                f"Past ({item['content'].get('emotion')}): "
-                f"{item['content'].get('content', '')}"
-            )
 
     return "\n".join(lines)
 

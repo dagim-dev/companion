@@ -34,9 +34,11 @@ class ReleaseContractTests(unittest.TestCase):
         init_db()
         app.dependency_overrides[get_current_user] = lambda: "user-123"
         app.dependency_overrides[get_state] = lambda: SimpleNamespace(user_id="user-123")
-        self.client = TestClient(app)
+        self.client_cm = TestClient(app)
+        self.client = self.client_cm.__enter__()
 
     def tearDown(self):
+        self.client_cm.__exit__(None, None, None)
         app.dependency_overrides.clear()
         self.env_patch.stop()
         self.config_patch.stop()

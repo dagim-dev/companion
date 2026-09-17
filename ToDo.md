@@ -63,7 +63,7 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 
 ## P1 — High Priority
 
-### [ ] 3. Standardize silent-failure handling in `embedding_engine.py` and related modules
+### [x] 3. Standardize silent-failure handling in `embedding_engine.py` and related modules
 - **Location:** `embedding_engine.py` lines 19–36 (`create_embedding`); same
   print+swallow pattern also present in `voice_service.py` and `llm.py` (see item 2)
 - **Problem:** `create_embedding()` catches every exception (auth errors, rate limits,
@@ -85,8 +85,12 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
   assert it's logged at ERROR level (not just swallowed).
 - **Dependencies/blockers:** Do after item 2 so both fixes use the same logging
   convention.
+- **Status:** Resolved 2026-09-14 — `create_embedding()` logs auth failures at ERROR
+  (with `OPENAI_API_KEY` hint) and transient OpenAI errors at WARNING; `voice_service.py`
+  uses `logger.exception` instead of `print`/`traceback`; covered by
+  `tests/test_embedding_engine.py` and `tests/test_voice_service.py`.
 
-### [ ] 4. Fix dead "emotionally important past memories" code path
+### [x] 4. Fix dead "emotionally important past memories" code path
 - **Location:** `context_builder.py`, `select_relevant_memory()`, lines 40–45
 - **Problem:** `for entry in profile.get("history", []): if entry.get("intensity", 0)
   > 0.7: ...` — `profile` here is the dict from `memory.get_profile()`, which only ever
@@ -110,8 +114,11 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
   appears in `context["relevant_memory"]`. If deleted, existing tests should still pass
   unchanged.
 - **Dependencies/blockers:** Needs your decision — see Open Questions.
+- **Status:** Resolved 2026-09-14 — deleted the never-populated `profile["history"]`
+  branch in `select_relevant_memory()` and its unreachable `emotional_memory` case in
+  `format_memory()`; covered by `tests/test_context_builder.py`.
 
-### [ ] 5. Consolidate `memory_extraction_worker.py`'s two job-processing functions
+### [x] 5. Consolidate `memory_extraction_worker.py`'s two job-processing functions
 - **Location:** `memory_extraction_worker.py` — `process_next_job()` (lines 42–64) vs.
   `process_next_available_job()` + `_claim_any_due_job()` (lines 67–117)
 - **Problem:** Two nearly-identical implementations of "claim and process one
@@ -136,8 +143,12 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 - **Validation:** New/rewritten tests directly cover the function `start_worker()`
   actually calls.
 - **Dependencies/blockers:** None.
+- **Status:** Resolved 2026-09-14 — removed unused `process_next_job()`, extracted
+  shared `_process_claimed_job()` helper, and rewrote `tests/test_memory_extraction_worker.py`
+  against `process_next_available_job()` / `_claim_any_due_job()` (FIFO cross-user ordering,
+  `next_retry_at` gating, and retry-count assertions).
 
-### [ ] 6. Fix stale documentation links and gaps in `docs/ARCHITECTURE.md` / `docs/V4_SCOPE.md`
+### [x] 6. Fix stale documentation links and gaps in `docs/ARCHITECTURE.md` / `docs/V4_SCOPE.md`
 - **Location:** `docs/ARCHITECTURE.md`, `docs/V4_SCOPE.md`
 - **Problem (all verified — files checked directly against the repo):**
   - Both files link to `[Future change.md](../Future%20change.md)` — **this file does
@@ -166,8 +177,11 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
   script (see P3).
 - **Dependencies/blockers:** None. Do after item 4 is decided, since that decision
   also touches `context_builder.py`'s documented behavior.
+- **Status:** Resolved 2026-09-14 — restored `docs/V4_SCOPE.md`, removed dead
+  `Future change.md` / `benchmarks.md` links, corrected `prompts/__init__.py` note,
+  documented `turn_guard.py`, swept `CHANGELOG.md` and ADR 0002.
 
-### [ ] 7. Migrate FastAPI `@app.on_event` to lifespan handlers
+### [x] 7. Migrate FastAPI `@app.on_event` to lifespan handlers
 - **Location:** `api/main.py` lines 36–57
 - **Problem:** Uses the deprecated `@app.on_event("startup")` / `@app.on_event("shutdown")`
   pattern.
@@ -190,7 +204,7 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 
 ## P2 — Medium Priority
 
-### [ ] 8. Pin dependency versions before hibernation
+### [x] 8. Pin dependency versions before hibernation
 - **Location:** `requirements.txt`, `frontend/package.json`
 - **Problem:** `requirements.txt` uses only floating lower-bound specifiers
   (`fastapi>=0.115.0`, `openai>=1.0.0`, etc.) with no upper bounds and no lockfile.
@@ -211,8 +225,11 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
   currently-passing test run.
 - **Dependencies/blockers:** Do last among P2 items, after any other dependency-touching
   fixes above are merged, so the pin captures the final state.
+- **Status:** Resolved 2026-09-14 — added `requirements.lock.txt` (Python 3.11 `pip freeze`
+  snapshot), README install uses the lock; `requirements.txt` remains the editable constraint
+  source; architecture docs updated.
 
-### [ ] 9. Narrow the broad `except Exception` fallback in `auth_store.get_user_by_id`
+### [x] 9. Narrow the broad `except Exception` fallback in `auth_store.get_user_by_id`
 - **Location:** `auth_store.py` lines 63–78
 - **Problem:** Selects `onboarding_completed` and falls back to a query without it
   inside a bare `except Exception`, to support both pre- and post-migration schemas.
@@ -229,8 +246,11 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 - **Validation:** Existing auth tests should pass unchanged; add a test that a genuine
   DB error (e.g. locked file) propagates instead of falling back silently.
 - **Dependencies/blockers:** None.
+- **Status:** Resolved 2026-09-14 — `get_user_by_id()` uses `PRAGMA table_info(users)` to
+  choose the query; legacy four-column `users` tables still return `onboarding_completed=False`;
+  covered by `tests/test_auth_store.py`.
 
-### [ ] 10. Standardize error logging (replace `print()`/`traceback.print_exc()`)
+### [x] 10. Standardize error logging (replace `print()`/`traceback.print_exc()`)
 - **Location:** `llm.py` (see item 2), `embedding_engine.py` (see item 3),
   `voice_service.py`
 - **Problem:** Three modules use `print()`/`traceback.print_exc()` for error reporting
@@ -248,12 +268,15 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 - **Validation:** Manual — trigger a failure path in each of the three modules,
   confirm it appears in logs, not stdout only.
 - **Dependencies/blockers:** Do together with items 2 and 3.
+- **Status:** Resolved 2026-09-14 — runtime error paths in `llm.py` (item 2),
+  `embedding_engine.py` (item 3), and `voice_service.py` (item 3) now use module
+  loggers; remaining `print()` in `llm.py` is intentional CLI stream echo only.
 
 ---
 
 ## P3 — Optional Cleanup
 
-### [ ] 11. Replace deprecated `datetime.utcnow()` calls
+### [x] 11. Replace deprecated `datetime.utcnow()` calls
 - **Location:** `companion_prefs.py:286`, `auth_store.py:22`
 - **Evidence (verified):** Both flagged by `DeprecationWarning` during the test run
   ("scheduled for removal in a future version").
@@ -261,8 +284,11 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
   change (both already produce UTC ISO strings).
 - **Priority note:** Genuinely optional — Python won't remove this soon — but it's a
   five-minute fix while you're already in these files for items 2 and 9.
+- **Status:** Resolved 2026-09-14 — `create_user()` and `save_companion_preferences()`
+  use `datetime.now(timezone.utc).isoformat()`; regression assertions in
+  `tests/test_auth_store.py` and `tests/test_companion_preferences_v2.py`.
 
-### [ ] 12. Clean up contradictory voice config comments
+### [x] 12. Clean up contradictory voice config comments
 - **Location:** `config.py` lines 8–12
 - **Evidence (verified):** `ELEVENLABS_VOICE_ID` default is preceded by the comment
   `# Calm British male — set in ElevenLabs dashboard or env`, but the literal value on
@@ -271,6 +297,8 @@ evidence, not runtime-confirmed. **Unknown** = flagged for your confirmation.
 - **Fix:** Pick one accurate description of the actual default voice and update both
   comments to agree. Cosmetic only — `VOICE_ENABLED` already defaults to `false` so
   this isn't affecting current behavior.
+- **Status:** Resolved 2026-09-14 — single generic comment in `config.py` (fallback ID
+  unchanged); `.env.example` labeled as example voice ID.
 
 ---
 
@@ -331,18 +359,17 @@ found:
 
 ## Testing
 
-- **Current state (verified):** `python -m pytest tests/ -q` → **115 passed**, ~2s, no
-  failures, run clean against Python 3.12 with dummy env vars. Test suite is in good
+- **Current state (verified):** `python -m pytest tests/ -q` → **143 passed**, ~2s, no
+  failures, run clean against Python 3.11+ with dummy env vars. Test suite is in good
   health and is a real asset going into hibernation.
-- **Coverage gap (item 5):** production's actual job-claiming path
-  (`process_next_available_job` / `_claim_any_due_job`) is untested; only the
-  test-only `process_next_job` path is covered.
+- **Coverage gap (item 5):** **closed** — `tests/test_memory_extraction_worker.py` now
+  exercises `process_next_available_job()` / `_claim_any_due_job()` directly.
 - **Recommended new tests before pause**, in priority order:
-  1. Bounded-length regression test for `update_reflection()` (item 1).
+  1. Bounded-length regression test for `update_reflection()` (item 1) — done.
   2. Fallback-response-not-silently-persisted test for `chat_stream()` /
-     `finalize_response()` (item 2).
-  3. Embedding-auth-failure-logs-loudly test for `create_embedding()` (item 3).
-  4. Direct tests for `process_next_available_job()` / `_claim_any_due_job()` (item 5).
+     `finalize_response()` (item 2) — done.
+  3. Embedding-auth-failure-logs-loudly test for `create_embedding()` (item 3) — done.
+  4. Direct tests for `process_next_available_job()` / `_claim_any_due_job()` (item 5) — done.
 - **Note (unknown, requires confirmation):** README specifies Python 3.11 as a
   prerequisite; this audit's test run used Python 3.12 without issue. No 3.11-specific
   API usage was found in a scan of the codebase, but this wasn't exhaustively verified
@@ -372,20 +399,18 @@ Covered in detail under item 6. Summary of what needs to change before pause:
    (~1.3–1.8s/turn). If you still have that data, it'd be a genuinely useful seed for
    the new `benchmark.md` baseline; otherwise that number should be treated as
    historical/unverified.
-3. **Item 4 (`profile.get("history")` dead code)** — do you want this feature actually
-   wired up (surface emotionally-intense history in the prompt context), or deleted as
-   redundant with `reflections`/`learned_preferences`? I've defaulted to recommending
-   deletion as lower-risk, but this is a product decision, not just a cleanup one.
+3. **Item 4 (`profile.get("history")` dead code)** — **resolved:** deletion chosen;
+   dead branch removed from `context_builder.py` (see item 4 status).
 
 ## Final Validation Checklist
 
-- [ ] `python -m pytest tests/ -q` passes (currently 115/115 — re-run after each fix)
+- [ ] `python -m pytest tests/ -q` passes (currently 143/143 — re-run after each fix)
 - [ ] `cd frontend && npm run lint && npm run build` passes
 - [ ] Manual smoke test: `scripts/smoke_release_e2e.py` against a locally built
       frontend + running API
-- [ ] Fresh `git clone` + `pip install -r requirements.txt` (or the new lock file, if
-      item 8 is done) + `.env` from `.env.example` boots cleanly end to end
-- [ ] `docs/ARCHITECTURE.md` has no dead links (manual check or simple script)
+- [ ] Fresh `git clone` + `pip install -r requirements.lock.txt` + `.env` from
+      `.env.example` boots cleanly end to end
+- [x] `docs/ARCHITECTURE.md` has no dead links (manual check or simple script)
 - [ ] Reflection content length stays bounded after repeated mentions of the same
       topic (manual or automated per item 1's new test)
 - [x] A forced OpenAI failure does not leave fallback text indistinguishable from a
